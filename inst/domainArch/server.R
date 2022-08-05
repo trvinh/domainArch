@@ -79,7 +79,8 @@ shinyServer(function(input, output, session) {
             selectInput(
                 "seq2",
                 "Protein 2",
-                getOrthoIDs(input$seed, domainFile),
+                c("none", getOrthoIDs(input$seed, domainFile)),
+                selected = "none"
             )
         )
     })
@@ -102,8 +103,15 @@ shinyServer(function(input, output, session) {
                     "folder"
                 )
             }
-            orthoIDtmp <- gsub("\\|",":",c(input$seq1, input$seq2))
-            return(domainDf[domainDf$orthoID %in% orthoIDtmp,])
+            # filter domain df by orthoIDs
+            seq2 <- input$seq2
+            if (input$seq2 == "none") seq2 <- input$seq1
+            orthoIDtmp <- gsub("\\|",":",c(input$seq1, seq2))
+            outDf <- domainDf[domainDf$orthoID %in% orthoIDtmp,]
+            # filter domain df by features
+            outDf[c("feature_type","feature_id")] <- str_split_fixed(outDf$feature, '_', 2)
+            outDf <- outDf[!(outDf$feature_type %in% input$feature),]
+            return(outDf)
         })
     })
     
@@ -113,8 +121,10 @@ shinyServer(function(input, output, session) {
             if (is.null(getDomainInformation())) {
                 msgPlot()
             } else {
+                seq2 <- input$seq2
+                if (input$seq2 == "none") seq2 <- input$seq1
                 g <- createArchiPlot2(
-                    c(input$seed, input$seq2), 
+                    c(input$seed, seq2), 
                     getDomainInformation(), 
                     input$labelArchiSize, input$titleArchiSize
                 )
@@ -137,7 +147,9 @@ shinyServer(function(input, output, session) {
     output$domainTable <- renderTable({
         req(getDomainInformation())
         req(input$seq2)
-        features <- getDomainLink(c(input$seed, input$seq2), getDomainInformation())
+        seq2 <- input$seq2
+        if (input$seq2 == "none") seq2 <- input$seq1
+        features <- getDomainLink(c(input$seed, seq2), getDomainInformation())
         features
     }, sanitize.text.function = function(x) x)
     
@@ -146,8 +158,10 @@ shinyServer(function(input, output, session) {
             c("domains.pdf")
         },
         content = function(file) {
+            seq2 <- input$seq2
+            if (input$seq2 == "none") seq2 <- input$seq1
             g <- createArchiPlot2(
-                c(input$seed, input$seq2), 
+                c(input$seed, seq2), 
                 getDomainInformation(), 
                 input$labelArchiSize, input$titleArchiSize
             )

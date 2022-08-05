@@ -125,9 +125,11 @@ createArchiPlot2 <- function(
         if (length(orthoDf$feature) < length(seedDf$feature)) {
             orderedOrthoDf <- orthoDf[order(orthoDf$feature), ]
             orderedSeedDf <- sortDomains(orderedOrthoDf, seedDf)
+            orderedOrthoDf <- sortDomains(orderedSeedDf, orderedOrthoDf)
         } else {
             orderedSeedDf <- seedDf[order(seedDf$feature), ]
             orderedOrthoDf <- sortDomains(orderedSeedDf, orthoDf)
+            orderedSeedDf <- sortDomains(orderedOrthoDf, orderedSeedDf)
         }
         # join weight values and feature names
         if ("weight" %in% colnames(orderedOrthoDf)) {
@@ -241,10 +243,10 @@ sortDomains <- function(seedDf, orthoDf){
     colnames(featureList) <- c("feature")
     # and add order number to each feature
     featureList$orderNo <- seq(length(featureList$feature))
-    
+
     # merge those info to orthoDf
     orderedOrthoDf <- merge(orthoDf, featureList, all.x = TRUE)
-    
+
     # sort orthoDf
     index <- with(orderedOrthoDf, order(orderNo))
     orderedOrthoDf <- orderedOrthoDf[index, ]

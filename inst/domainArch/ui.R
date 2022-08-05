@@ -60,13 +60,13 @@ shinyUI(
                         column(
                             2,
                             createTextSize(
-                                "titleArchiSize", "Title size(px)", 14, 150
+                                "titleArchiSize", "Title size(px)", 14, 100
                             )
                         ),
                         column(
                             2,
                             createTextSize(
-                                "labelArchiSize", "Domain ID size(px)", 12, 150
+                                "labelArchiSize", "DomainID size(px)", 12, 150
                             )
                         ),
                         column(
@@ -74,7 +74,7 @@ shinyUI(
                             selectInput(
                                 "feature",
                                 "Exclude features",
-                                choices = c("none","fLPS","SignalP","TMHMM","all"),
+                                choices = c("flps","seg","coils","signalp","tmhmm","smart","pfam"),
                                 multiple = TRUE
                             )
                         )

@@ -28,4 +28,7 @@ In the future one can use the annotated json files or directly the protein seque
 ## Contact
 
 For any bug reports or questions, please [open an issue on GitHub](https://github.com/trvinh/domainArch/issues/new) or be in touch via email
-Vinh tran@bio.uni-frankfurt.de
+
+Vinh
+
+tran@bio.uni-frankfurt.de

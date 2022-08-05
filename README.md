@@ -14,3 +14,5 @@ Then, to run it, enter:
 library(PhyloRBF)
 runPhyloRBF()
 ```
+
+<img width="1292" alt="image" src="https://user-images.githubusercontent.com/19269760/183078583-a973d96b-4a62-49d7-8a79-408521c7add3.png">

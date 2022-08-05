@@ -1,11 +1,11 @@
 shinyUI(
     fluidPage(
-        
+
         tags$style(type = "text/css", "body {padding-top: 80px;}"),
         useShinyjs(),
 
         # Application title
-        titlePanel("", windowTitle = "Phylosophy"),
+        titlePanel("", windowTitle = "domainArch"),
         navbarPage(
             em(strong("domainArch v0.0.1")),
             id = "tabs",
@@ -19,8 +19,9 @@ shinyUI(
                     width = 3,
                     # radioButtons(
                     selectInput(
-                        "inputType", "Input type", 
-                        c(File = "File", Folder = "Folder")
+                        "inputType", "Input type",
+                        c(File = "File", Folder = "Folder"),
+                        width = 100
                     ),
                     conditionalPanel(
                         condition = "input.inputType == 'File'",
@@ -50,11 +51,11 @@ shinyUI(
                 mainPanel(
                     fluidRow(
                         column(
-                            2, 
+                            2,
                             createPlotSize("archiHeight", "Plot height(px)",400)
                         ),
                         column(
-                            2, 
+                            2,
                             createPlotSize("archiWidth", "Plot width(px)", 800)
                         ),
                         column(

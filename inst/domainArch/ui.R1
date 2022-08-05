@@ -1,0 +1,47 @@
+shinyUI(
+    fluidPage(
+        
+        theme = shinytheme("yeti"),
+        tags$style(type = "text/css", "body {padding-top: 80px;}"),
+        useShinyjs(),
+
+        # Application title
+        titlePanel("", windowTitle = "Phylosophy"),
+        navbarPage(
+            em(strong("domainArch v0.0.1")),
+            id = "tabs",
+            collapsible = TRUE,
+            inverse = TRUE,
+            fluid = TRUE,
+            position = "fixed-top",
+            tabPanel(
+                "Main",
+                sidebarPanel(
+                    width = 3,
+                    shinyFilesButton(
+                        "domainFile", "Input file" ,
+                        title = "Please provide domain file:",
+                        multiple = FALSE,
+                        buttonType = "default", class = NULL
+                    ),
+                    uiOutput("domainFile.ui"),
+                    br(),
+                    numericInput(
+                        "nrSeq",
+                        "Number of sequences",
+                        min = 1,
+                        max = 5,
+                        step = 1,
+                        value = 1
+                    ),
+                    uiOutput("seedID.ui"),
+                    uiOutput("seqID.ui"),
+                    bsButton("doPlot", "Plot", style = "info")
+                ),
+                mainPanel(
+                    plotOutput("domainPlot")
+                )
+            )
+        )
+    )
+)

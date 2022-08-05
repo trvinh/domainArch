@@ -1,0 +1,20 @@
+Package: domainArch
+Version: 0.0.1
+Date: 2022-08-03
+Title: domainArch
+Authors@R: c(
+    person("Vinh", "Tran", role = c("aut", "cre"), email = "tran@bio.uni-frankfurt.de"))
+Description: Tool for protein domain architecture plotting and comparing
+URL: https://github.com/trvinh/domainArch/
+BugReports: https://github.com/trvinh/domainArch/issues
+License: MIT + file LICENSE
+Depends: R (>= 4.2.0)
+Encoding: UTF-8
+biocViews: Software, Visualization, DataRepresentation, MultipleComparison, FunctionalPrediction
+Imports:
+    data.table, DT, ggplot2, gridExtra, pbapply, RColorBrewer,
+    shiny, shinyBS, shinyFiles, shinyjs, shinyalert, shinythemes, plyr, 
+    PhyloProfile, stringr
+RoxygenNote: 7.2.0
+Suggests: knitr, rmarkdown, testthat
+VignetteBuilder: knitr

@@ -62,28 +62,30 @@ msgPlot <- function() {
     return(g)
 }
 
-getGroupIds <- function (inputType, domainFile, domainDir) {
+getGroupIds <- function (
+        inputType = "File", domainFile = NULL, domainDir = NULL
+) {
     if(inputType == "File") {
         df <- read.csv(
             domainFile, header = FALSE, sep = "\t", 
             stringsAsFactors = FALSE
         )
         df[c("groupID", "tmp")] <- str_split_fixed(df$V1, '#', 2)
-        return(
-            list(
-                levels(as.factor(df$groupID)), 
-                #levels(as.factor(df$V2[df$groupID == input$seed]))
-                levels(as.factor(df$groupID))
-            )
-        )
+        return(levels(as.factor(df$groupID)))
+        #     list(
+        #         levels(as.factor(df$groupID)), 
+        #         #levels(as.factor(df$V2[df$groupID == input$seed]))
+        #         levels(as.factor(df$groupID))
+        #     )
+        # )
     } else if (inputType == "Folder") {
         files <- list.files(domainDir, pattern = ".domains")
-        return(
-            list(
-                str_replace(levels(as.factor(files)), ".domains", ""),
-                NULL
-            )
-        )
+        return(str_replace(levels(as.factor(files)), ".domains", ""))
+        #     list(
+        #         str_replace(levels(as.factor(files)), ".domains", ""),
+        #         NULL
+        #     )
+        # )
     }
 }
 
@@ -95,6 +97,67 @@ getOrthoIDs <- function (groupID = NULL, file = NULL) {
     )
     df[c("groupID", "tmp")] <- str_split_fixed(df$V1, '#', 2)
     return(levels(as.factor(df$V2[df$groupID == groupID])))
+}
+
+getSpecList <- function (annoDir = NULL) {
+    if (is.null(annoDir)) stop("No annotation folder given!")
+    files <- list.files(annoDir, pattern = ".json")
+    return(str_replace(levels(as.factor(files)), ".json", ""))
+}
+
+json2list <- function(jsonFile = NULL) {
+    if (is.null(jsonFile)) return(NULL)
+    jsonList <- fromJSON(jsonFile)
+    return(jsonList)
+}
+
+parseDomainFromJson <- function (spec = NULL, protIds = NULL, jsonList = NULL) {
+    if (is.null(protIds)) stop("No protein ID given")
+    if (is.null(spec)) stop("No species ID given")
+    outList <- lapply(
+        protIds,
+        function (id) {
+            featList <- lapply(
+                c("flps", "tmhmm", "signalp", "coils2", "seg", "smart", "pfam"), 
+                function (x) {
+                    if (length(jsonList$feature[[id]][[x]]) > 0) {
+                        instanceList <- lapply(
+                            names(jsonList$feature[[id]][[x]]), 
+                            function (y) {
+                                return(
+                                    c(
+                                        y, 
+                                        jsonList$feature[[id]][[x]][[y]]$instance[1:2]
+                                    )
+                                )
+                            }
+                        )
+                        return(data.frame(do.call(rbind, instanceList)))
+                    }
+                }
+            )
+            tmpDf <- data.frame(do.call(rbind, featList))
+            if (nrow(tmpDf) > 0) {
+                tmpDf$length <- jsonList$feature[[id]]$length
+                tmpDf$protId <- id
+                return(tmpDf)
+            }
+        }
+    )
+    outDf <- data.frame(do.call(rbind, outList))
+    if (nrow(outDf) > 0) {
+        colnames(outDf) <- c("feature", "start", "end", "length", "orthoID")
+        outDf$seedID <- paste0(spec,"#",outDf$orthoID)
+        outDf$weight <- 0
+        outDf$path <- "N"
+        outDf$start <- as.integer(outDf$start)
+        outDf$end <- as.integer(outDf$end)
+        return(outDf)
+    } else {
+        message("No domain found for ", protIds, " in ", spec)
+        return(NULL)
+    }
+    
 }
 
 
@@ -115,39 +178,53 @@ createArchiPlot2 <- function(
     
     if (nrow(subdomainDf) < 1) return(paste0("No domain info available!"))
     else {
+        # get minStart and maxEnd
+        minStart <- min(subdomainDf$start)
+        maxEnd <- max(subdomainDf$end)
+        if ("length" %in% colnames(subdomainDf))
+            maxEnd <- max(c(subdomainDf$end, subdomainDf$length))
         # ortho & seed domains df
         orthoDf <- subdomainDf[subdomainDf$orthoID == ortho,]
         seedDf <- subdomainDf[subdomainDf$orthoID != ortho,]
         if (nrow(seedDf) == 0) seedDf <- orthoDf
         seed <- as.character(seedDf$orthoID[1])
         if (nrow(seedDf) == 0) return(paste0("No domain info available!"))
-        # change order of one df's features based on order of other df's
-        if (length(orthoDf$feature) < length(seedDf$feature)) {
-            orderedOrthoDf <- orthoDf[order(orthoDf$feature), ]
-            orderedSeedDf <- sortDomains(orderedOrthoDf, seedDf)
-            orderedOrthoDf <- sortDomains(orderedSeedDf, orderedOrthoDf)
+        
+        if (nrow(orthoDf) > 0) {
+            # change order of one df's features based on order of other df's
+            if (length(orthoDf$feature) < length(seedDf$feature)) {
+                orderedOrthoDf <- orthoDf[order(orthoDf$feature), ]
+                orderedSeedDf <- sortDomains(orderedOrthoDf, seedDf)
+                orderedOrthoDf <- sortDomains(orderedSeedDf, orderedOrthoDf)
+            } else {
+                orderedSeedDf <- seedDf[order(seedDf$feature), ]
+                orderedOrthoDf <- sortDomains(orderedSeedDf, orthoDf)
+                orderedSeedDf <- sortDomains(orderedOrthoDf, orderedSeedDf)
+            }
+            # join weight values and feature names
+            if ("weight" %in% colnames(orderedOrthoDf)) {
+                orderedOrthoDf$yLabel <- paste0(
+                    orderedOrthoDf$feature," (",round(orderedOrthoDf$weight, 2),")")
+            } else orderedOrthoDf$yLabel <- orderedOrthoDf$feature
+            if ("weight" %in% colnames(orderedSeedDf)) {
+                orderedSeedDf$yLabel <- paste0(
+                    orderedSeedDf$feature," (",round(orderedSeedDf$weight, 2),")")
+            } else orderedSeedDf$yLabel <- orderedSeedDf$feature
+            # plotting
+            g <- pairDomainPlotting(
+                seed, ortho, orderedSeedDf, orderedOrthoDf, minStart, maxEnd,
+                labelArchiSize, titleArchiSize)
         } else {
             orderedSeedDf <- seedDf[order(seedDf$feature), ]
-            orderedOrthoDf <- sortDomains(orderedSeedDf, orthoDf)
-            orderedSeedDf <- sortDomains(orderedOrthoDf, orderedSeedDf)
+            if ("weight" %in% colnames(orderedSeedDf)) {
+                orderedSeedDf$yLabel <- paste0(
+                    orderedSeedDf$feature," (",round(orderedSeedDf$weight, 2),")")
+            } else orderedSeedDf$yLabel <- orderedSeedDf$feature
+            # plotting
+            g <- pairDomainPlotting(
+                seed, seed, orderedSeedDf, orderedSeedDf, minStart, maxEnd,
+                labelArchiSize, titleArchiSize)
         }
-        # join weight values and feature names
-        if ("weight" %in% colnames(orderedOrthoDf)) {
-            orderedOrthoDf$yLabel <- paste0(
-                orderedOrthoDf$feature," (",round(orderedOrthoDf$weight, 2),")")
-        } else orderedOrthoDf$yLabel <- orderedOrthoDf$feature
-        if ("weight" %in% colnames(orderedSeedDf)) {
-            orderedSeedDf$yLabel <- paste0(
-                orderedSeedDf$feature," (",round(orderedSeedDf$weight, 2),")")
-        } else orderedSeedDf$yLabel <- orderedSeedDf$feature
-        # plotting
-        minStart <- min(subdomainDf$start)
-        maxEnd <- max(subdomainDf$end)
-        if ("length" %in% colnames(subdomainDf))
-            maxEnd <- max(c(subdomainDf$end, subdomainDf$length))
-        g <- pairDomainPlotting(
-            seed, ortho, orderedSeedDf, orderedOrthoDf, minStart, maxEnd,
-            labelArchiSize, titleArchiSize)
         return(g)
     }
 }
@@ -276,7 +353,9 @@ getDomainLink <- function(info, domainDf) {
     subdomainDf$feature <- as.character(subdomainDf$feature)
     orthoID <- NULL
     feature <- NULL
-    if (nrow(subdomainDf) < 1) return(paste0("No domain info available!"))
+    if (nrow(subdomainDf) < 1) {
+        return(data.frame("ID" = character(), "PFAM" = character(), "SMART"= character()))
+    }
     else {
         # ortho & seed domains df
         orthoDf <- subdomainDf[subdomainDf$orthoID == ortho,]

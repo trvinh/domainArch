@@ -20,8 +20,12 @@ shinyUI(
                     # radioButtons(
                     selectInput(
                         "inputType", "Input type",
-                        c(File = "File", Folder = "Folder"),
-                        width = 100
+                        c(
+                            "Domain file" = "File",
+                            "Domain folder" = "Folder",
+                            "Annotation folder" = "Anno"
+                        ),
+                        width = 150
                     ),
                     conditionalPanel(
                         condition = "input.inputType == 'File'",
@@ -43,8 +47,22 @@ shinyUI(
                         uiOutput("domainDir.ui"),
                         br()
                     ),
+                    conditionalPanel(
+                        condition = "input.inputType == 'Anno'",
+                        shinyDirButton(
+                            "annoDir", "Input directory" ,
+                            title = "Please select a folder",
+                            buttonType = "default", class = NULL
+                        ),
+                        uiOutput("annoDir.ui"),
+                        br()
+                    ),
                     br(),
                     uiOutput("seedID.ui"),
+                    # conditionalPanel(
+                    #     condition = "input.inputType == 'Anno'",
+                    #     bsButton("loadJson", "Load annotation file(s)")
+                    # ),
                     uiOutput("seqID.ui"),
                     bsButton("doPlot", "Plot", style = "info")
                 ),

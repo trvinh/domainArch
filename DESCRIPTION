@@ -14,7 +14,7 @@ biocViews: Software, Visualization, DataRepresentation, MultipleComparison, Func
 Imports:
     data.table, DT, ggplot2, gridExtra, pbapply, RColorBrewer,
     shiny, shinyBS, shinyFiles, shinyjs, shinyalert, shinythemes, plyr, 
-    PhyloProfile, stringr
+    PhyloProfile, stringr, jsonlite
 RoxygenNote: 7.2.0
 Suggests: knitr, rmarkdown, testthat
 VignetteBuilder: knitr

@@ -8,7 +8,7 @@ source("R/functions.R")
 packages <- c(
     "data.table", "DT", "ggplot2", "gridExtra", "pbapply", "RColorBrewer",
     "shiny", "shinyBS", "shinyFiles", "shinyjs", "shinyalert", "shinythemes", "plyr", 
-    "PhyloProfile", "stringr"
+    "PhyloProfile", "stringr", "jsonlite"
 )
 
 # Load packages

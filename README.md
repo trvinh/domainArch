@@ -12,8 +12,8 @@ devtools::install_github("trvinh/domainArch", INSTALL_opts = c('--no-lock'), dep
 Then, to run it, enter:
 
 ```r
-library(PhyloRBF)
-runPhyloRBF()
+library(domainArch)
+runDomainArch()
 ```
 
 ## Input

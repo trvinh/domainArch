@@ -26,7 +26,7 @@ Currently the tool accepts 3 kinds of input:
 In the future one can use directly the protein sequences as input. Stay tuned! ;)
 
 ## Screenshot
-<img width="1292" alt="image" src="https://user-images.githubusercontent.com/19269760/183078583-a973d96b-4a62-49d7-8a79-408521c7add3.png">
+![image](https://github.com/trvinh/domainArch/assets/19269760/a61b2f6b-5c3d-41df-991e-6b7ed17e24ad)
 
 ## Contact
 

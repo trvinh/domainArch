@@ -253,6 +253,7 @@ shinyServer(function(input, output, session) {
             }
         }
     })
+    
     output$domainPlot.ui <- renderUI({
         if (is.null(getDomainInformation())) {
             msg <- paste0(
@@ -263,10 +264,16 @@ shinyServer(function(input, output, session) {
             plotOutput(
                 "domainPlot",
                 height = input$archiHeight,
-                width = input$archiWidth
+                width = input$archiWidth,
+                click = "plot_click",
             )
         }
     })
+    
+    # output$hover_info <- renderPrint({
+    #     cat("input$plot_click:\n")
+    #     str(input$plot_click)
+    # })
     
     output$domainTable <- renderTable({
         req(getDomainInformation())

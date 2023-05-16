@@ -242,40 +242,34 @@ singleDomainPlotting <- function(
         colorScheme <- structure(
             getQualColForVector(levels(as.factor(df$feature))),
             .Names = levels(as.factor(df$feature)))}
+    # initiate ggplot object
     gg <- ggplot(df, aes(y = feature, x = end, color = as.factor(feature))) +
-        geom_segment(
-            data = df, color = "white", size = 0,
-            aes(y = feature, yend = feature, x = minStart, xend = maxEnd)) +
         scale_color_manual(values = colorScheme)
     # draw lines for representing sequence length
     if ("length" %in% colnames(df))
         gg <- gg + geom_segment(
-            data = df, size = 1, color = "#b2b2b2",
+            data = df, size = 1, color = "#b2b2b2", alpha = 0.0,
             aes(x = 0, xend = length, y = feature, yend = feature))
-    # draw line and points
+    # draw features
     gg <- gg + geom_segment(
         data = df, aes(x = start, xend = end, y = feature, yend = feature),
-        size = 1.5) +
-        geom_point(data = df, aes(y = feature, x = start),
-                   color = "#b2b2b2", size = 3, shape = 3) +
-        geom_point(data = df, aes(y = feature, x = end),
-                   color = "#edae52", size = 3, shape = 5)
-    # draw dashed line for domain path
-    gg <- gg + geom_segment(
-        data = df[df$path == "Y", ], size = 3, linetype = "dashed",
-        aes(x = start, xend = end, y = feature, yend = feature))
+        size = 3)
     # theme format
     gg <- gg + scale_y_discrete(
         expand = c(0.075, 0), breaks = df$feature, labels = df$yLabel)
-    gg <- gg + labs(title = paste0(gsub(":", sep, geneID)), y = "Feature")
+    gg <- gg + labs(
+        title = paste0(gsub(":", sep, geneID)), #y = "Feature",
+        color = "Feature"
+    )
     gg <- gg + theme_minimal() + theme(panel.border = element_blank())
     gg <- gg + theme(axis.ticks = element_blank())
     gg <- gg + theme(plot.title = element_text(face = "bold", size = titleSize))
     gg <- gg + theme(plot.title = element_text(hjust = 0.5))
     gg <- gg + theme(
-        legend.position = "none", axis.title.x = element_blank(),
-        axis.text.y = element_text(size = labelSize),
-        axis.title.y = element_text(size = labelSize),
+        legend.position = "bottom",
+        axis.title.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.title.y = element_blank(),
         panel.grid.minor.x=element_blank(), panel.grid.major.x=element_blank())
     return(gg)
 }
@@ -300,12 +294,13 @@ pairDomainPlotting <- function(
     plotSeed <- singleDomainPlotting(
         seedDf, seed, sep, labelSize, titleSize, minStart, maxEnd, colorScheme)
     if (ortho == seed) {
-        g <- gridExtra::arrangeGrob(plotSeed, ncol = 1)
+        g <- plotSeed
     } else {
         seedHeight <- length(levels(as.factor(seedDf$feature)))
         orthoHeight <- length(levels(as.factor(orthoDf$feature)))
-        g <- gridExtra::arrangeGrob(
-            plotSeed, plotOrtho, ncol = 1, heights = c(seedHeight, orthoHeight)
+        g <- grid_arrange_shared_legend(
+            plotSeed, plotOrtho,
+            ncol = 1, nrow = 2, position = "bottom"
         )
     }
     return(g)
@@ -338,6 +333,38 @@ sortDomains <- function(seedDf, orthoDf){
     return(orderedOrthoDf)
 }
 
+
+#' Join multiple plots and merge legends
+grid_arrange_shared_legend <- function (
+    ..., ncol = length(list(...)), nrow = 1, position = c("bottom", "right")
+) {
+    plots <- list(...)
+    position <- match.arg(position)
+    g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
+    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
+    lheight <- sum(legend$height)
+    lwidth <- sum(legend$width)
+    gl <- lapply(plots, function(x) x + theme(legend.position = "none"))
+    gl <- c(gl, ncol = ncol, nrow = nrow)
+    
+    combined <- switch(
+        position,
+        "bottom" = gridExtra::arrangeGrob(
+            do.call(arrangeGrob, gl),
+            legend,
+            ncol = 1,
+            heights = grid::unit.c(unit(1, "npc") - lheight, lheight)
+        ),
+        "right" = gridExtra::arrangeGrob(
+            do.call(arrangeGrob, gl),
+            legend,
+            ncol = 2,
+            widths = grid::unit.c(unit(1, "npc") - lwidth, lwidth)
+        )
+    )
+    
+    return(combined)
+}
 
 #' get pfam and smart domain links
 #' @return dataframe with domain IDs and their database links

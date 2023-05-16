@@ -99,6 +99,7 @@ shinyUI(
                         )
                     ),
                     uiOutput("domainPlot.ui"),
+                    verbatimTextOutput("hover_info"),
                     downloadButton("archiDownload", "Download plot", class = "butDL"),
                     hr(),
                     tableOutput("domainTable")

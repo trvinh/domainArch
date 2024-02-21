@@ -203,12 +203,14 @@ createArchiPlot2 <- function(
             }
             # join weight values and feature names
             if ("weight" %in% colnames(orderedOrthoDf)) {
-                orderedOrthoDf$yLabel <- paste0(
-                    orderedOrthoDf$feature," (",round(orderedOrthoDf$weight, 2),")")
+                NULL
+                # orderedOrthoDf$yLabel <- paste0(
+                #     orderedOrthoDf$feature," (",round(orderedOrthoDf$weight, 2),")")
             } else orderedOrthoDf$yLabel <- orderedOrthoDf$feature
             if ("weight" %in% colnames(orderedSeedDf)) {
-                orderedSeedDf$yLabel <- paste0(
-                    orderedSeedDf$feature," (",round(orderedSeedDf$weight, 2),")")
+                NULL
+                # orderedSeedDf$yLabel <- paste0(
+                #     orderedSeedDf$feature," (",round(orderedSeedDf$weight, 2),")")
             } else orderedSeedDf$yLabel <- orderedSeedDf$feature
             # plotting
             g <- pairDomainPlotting(

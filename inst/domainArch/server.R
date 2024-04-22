@@ -228,22 +228,93 @@ shinyServer(function(input, output, session) {
             # filter domain df by features
             outDf[c("feature_type","feature_id")] <- str_split_fixed(outDf$feature, '_', 2)
             outDf <- outDf[!(outDf$feature_type %in% input$feature),]
+            # filter filters without e-value and/or bitscore
+            if ("noEvalue" %in% input$feature)
+                outDf <- outDf[!is.na(outDf$evalue),]
+            if ("noBitscore" %in% input$feature)
+                outDf <- outDf[!is.na(outDf$bitscore),]
+            # modify feature IDs
+            outDf$feature_id_mod <- outDf$feature_id
+            outDf$feature_id_mod <- gsub("SINGLE", "LCR", outDf$feature_id_mod)
+            outDf$feature_id_mod[outDf$feature_type == "coils"] <- "Coils"
+            outDf$feature_id_mod[outDf$feature_type == "seg"] <- "LCR"
+            outDf$feature_id_mod[outDf$feature_type == "tmhmm"] <- "TM"
+            # Enable/disable option for showing evalue/bitscore
+            if ("evalue" %in% colnames(outDf)) {
+                shinyjs::enable("showScore")
+            } else {
+                shinyjs::disable("showScore")
+            }
             return(outDf)
         })
     })
     
+    # * render e-value / bitscore filter
+    output$filterEvalue.ui <- renderUI({
+        req(getDomainInformation())
+        df <- getDomainInformation()
+        maxEvalue <- format(max(df$evalue[!is.na(df$evalue)]), scientific = TRUE, digits = 2)
+        if ("E-value" %in% input$showScore) {
+            numericInput(
+                "minEvalue", "Filter E-value:",
+                min = 0,
+                max = maxEvalue,
+                value = format(0.00001, scientific = TRUE, digits = 2) #maxEvalue
+            )
+        }
+    })
+    
+    output$filterBitscore.ui <- renderUI({
+        req(getDomainInformation())
+        df <- getDomainInformation()
+        if ("Bit-score" %in% input$showScore) {
+            numericInput(
+                "minBitscore", "Filter Bit-score:",
+                min = min(df$bitscore[!is.na(df$bitscore)]),
+                max = 9999,
+                value = min(df$bitscore[!is.na(df$bitscore)])
+            )
+        }
+    })
+    
+    filterDomainData <- reactive({
+        req(getDomainInformation())
+        outDf <- getDomainInformation()
+        if ("evalue" %in% colnames(outDf)) {
+            if ("E-value" %in% input$showScore) {
+                req(input$minEvalue)
+                minEvalue <- format(input$minEvalue, scientific = FALSE)
+                naOutDf <- outDf[is.na(outDf$evalue),]
+                outDf <- outDf[!is.na(outDf$evalue) & outDf$evalue <= input$minEvalue,]
+                outDf <- rbind(outDf,naOutDf)
+            }   
+            if ("Bit-score" %in% input$showScore) {
+                req(input$minBitscore)
+                naOutDf <- outDf[is.na(outDf$bitscore),]
+                outDf <- outDf[!is.na(outDf$bitscore) & outDf$bitscore >= input$minBitscore,]
+                outDf <- rbind(outDf,naOutDf)
+            }   
+        }
+        outDf$evalue[!is.na(outDf$evalue)] <- 
+            format(outDf$evalue[!is.na(outDf$evalue)], scientific = TRUE, digits = 2)
+        return(outDf[!is.na(outDf$seedID),])
+    })
+    
+    # * create domain plot =====================================================
     output$domainPlot <- renderPlot({
         req(getDomainInformation())
+        filterDomainData()
         if (input$doPlot > 0) {
-            if (is.null(getDomainInformation())) {
+            if (is.null(filterDomainData())) {
                 msgPlot()
             } else {
                 seq2 <- input$seq2
                 if (input$seq2 == "none") seq2 <- input$seq1
                 g <- createArchiPlot2(
                     c(input$seed1, seq2), 
-                    getDomainInformation(), 
-                    input$labelArchiSize, input$titleArchiSize
+                    filterDomainData(), 
+                    input$labelArchiSize, input$titleArchiSize,
+                    input$showScore, input$showName
                 )
                 if (any(g == "No domain info available!")) {
                     msgPlot()
@@ -255,6 +326,7 @@ shinyServer(function(input, output, session) {
     })
     
     output$domainPlot.ui <- renderUI({
+        req(getDomainInformation())
         if (is.null(getDomainInformation())) {
             msg <- paste0(
                 "<p><em>No domain found for this protein.</em></p>"
@@ -270,10 +342,10 @@ shinyServer(function(input, output, session) {
         }
     })
     
-    # output$hover_info <- renderPrint({
-    #     cat("input$plot_click:\n")
-    #     str(input$plot_click)
-    # })
+    output$hover_info <- renderPrint({
+        cat("input$plot_click:\n")
+        str(input$plot_click)
+    })
     
     output$domainTable <- renderTable({
         req(getDomainInformation())

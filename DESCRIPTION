@@ -1,6 +1,6 @@
 Package: domainArch
 Version: 0.0.1
-Date: 2023-05-16
+Date: 2024-04-22
 Title: domainArch
 Authors@R: c(
     person("Vinh", "Tran", role = c("aut", "cre"), email = "tran@bio.uni-frankfurt.de"))
@@ -12,7 +12,7 @@ Depends: R (>= 4.2.0)
 Encoding: UTF-8
 biocViews: Software, Visualization, DataRepresentation, MultipleComparison, FunctionalPrediction
 Imports:
-    data.table, DT, ggplot2, gridExtra, grid, pbapply, RColorBrewer,
+    BiocStyle, data.table, DT, ggplot2, gridExtra, grid, pbapply, RColorBrewer,
     shiny, shinyBS, shinyFiles, shinyjs, shinyalert, shinythemes, plyr, 
     PhyloProfile, stringr, jsonlite
 RoxygenNote: 7.2.3

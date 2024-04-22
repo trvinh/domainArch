@@ -17,7 +17,6 @@ shinyUI(
                 "Playground",
                 sidebarPanel(
                     width = 3,
-                    # radioButtons(
                     selectInput(
                         "inputType", "Input type",
                         c(
@@ -70,30 +69,54 @@ shinyUI(
                     fluidRow(
                         column(
                             2,
-                            createPlotSize("archiHeight", "Plot height(px)",400)
-                        ),
-                        column(
-                            2,
+                            createPlotSize("archiHeight", "Plot height(px)",400),
                             createPlotSize("archiWidth", "Plot width(px)", 800)
                         ),
                         column(
                             2,
                             createTextSize(
                                 "titleArchiSize", "Title size(px)", 14, 100
+                            ),
+                            createTextSize(
+                                "labelArchiSize", "DomainID size(px)", 12, 150
                             )
                         ),
                         column(
                             2,
-                            createTextSize(
-                                "labelArchiSize", "DomainID size(px)", 12, 150
+                            checkboxGroupInput(
+                                "showName",
+                                "Display feature names",
+                                choices = c(
+                                    "On the plot" = "plot",
+                                    "As a legend" = "legend",
+                                    "On the y-axis" = "axis"
+                                ),
+                                selected = "axis"
                             )
+                        ),
+                        column(
+                           2,
+                           checkboxGroupInput(
+                               "showScore",
+                               "Show information",
+                               choices = c(
+                                   "E-value", "Bit-score"
+                               )
+                           ),
+                           uiOutput("filterEvalue.ui"),
+                           uiOutput("filterBitscore.ui")
                         ),
                         column(
                             4,
                             selectInput(
                                 "feature",
                                 "Exclude features",
-                                choices = c("flps","seg","coils","signalp","tmhmm","smart","pfam"),
+                                choices = c(
+                                    "flps","seg","coils","signalp","tmhmm",
+                                    "smart","pfam",
+                                    "without E-value" = "noEvalue",
+                                    "without Bit-score" = "noBitscore"
+                                ),
                                 multiple = TRUE
                             )
                         )

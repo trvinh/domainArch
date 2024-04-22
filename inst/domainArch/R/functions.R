@@ -162,7 +162,8 @@ parseDomainFromJson <- function (spec = NULL, protIds = NULL, jsonList = NULL) {
 
 
 createArchiPlot2 <- function(
-        info = NULL, domainDf = NULL, labelArchiSize = 12, titleArchiSize = 12
+        info = NULL, domainDf = NULL, labelArchiSize = 12, titleArchiSize = 12,
+        showScore = NULL, showName = "plot"
 ){
     if (is.null(info) | is.null(domainDf)) return(ggplot() + theme_void())
     group <- as.character(info[1])
@@ -215,7 +216,7 @@ createArchiPlot2 <- function(
             # plotting
             g <- pairDomainPlotting(
                 seed, ortho, orderedSeedDf, orderedOrthoDf, minStart, maxEnd,
-                labelArchiSize, titleArchiSize)
+                labelArchiSize, titleArchiSize, showScore, showName)
         } else {
             orderedSeedDf <- seedDf[order(seedDf$feature), ]
             if ("weight" %in% colnames(orderedSeedDf)) {
@@ -225,7 +226,7 @@ createArchiPlot2 <- function(
             # plotting
             g <- pairDomainPlotting(
                 seed, seed, orderedSeedDf, orderedSeedDf, minStart, maxEnd,
-                labelArchiSize, titleArchiSize)
+                labelArchiSize, titleArchiSize, showScore, showName)
         }
         return(g)
     }
@@ -233,9 +234,11 @@ createArchiPlot2 <- function(
 
 singleDomainPlotting <- function(
         df = NULL, geneID = "GeneID", sep = "|", labelSize = 12, titleSize = 12,
-        minStart = NULL, maxEnd = NULL, colorScheme = NULL
+        minStart = NULL, maxEnd = NULL, colorScheme = NULL, 
+        showScore = NULL, showName = "plot"
 ){
-    feature <- end <- start <- NULL
+    feature <- feature_id_mod <- end <- start <- NULL
+    
     # parse parameters
     if (is.null(df)) return(ggplot() + theme_void())
     if (is.null(minStart)) minStart <- min(df$start)
@@ -256,29 +259,94 @@ singleDomainPlotting <- function(
     gg <- gg + geom_segment(
         data = df, aes(x = start, xend = end, y = feature, yend = feature),
         size = 3)
+    # add feature names
+    if ("plot" %in% showName) {
+        gg <- gg + geom_label(
+            aes(label = str_wrap(feature_id_mod),
+                x = (start+end)/2),
+            color = "black", vjust = -0.25
+        )
+    }
+    # add scores if selected
+    if ("Bit-score" %in% showScore & "E-value" %in% showScore) {
+        gg <- gg + geom_label(
+            aes(
+                label = ifelse(evalue == "NA" & bitscore == "NA", "", str_wrap(
+                    paste0(
+                        "E-value: ", evalue, "; Bitscore: ", bitscore
+                    )
+                )),
+                x = (start+end)/2
+            ),
+            color = "black", vjust = 1.25
+        )
+    } else if ("Bit-score" %in% showScore) {
+        gg <- gg + geom_label(
+            aes(
+                label = ifelse(bitscore == "NA", "", str_wrap(
+                    paste0(
+                        "Bitscore: ", bitscore
+                    )
+                )),
+                x = (start+end)/2
+            ),
+            color = "black", vjust = 1.25
+        )
+    } else if ("E-value" %in% showScore) {
+        gg <- gg + geom_label(
+            aes(
+                label = ifelse(evalue == "NA", "", str_wrap(
+                    paste0(
+                        "E-value: ", evalue
+                    )
+                )),
+                x = (start+end)/2
+            ),
+            color = "black", vjust = 1.25
+        )
+    }
     # theme format
-    gg <- gg + scale_y_discrete(
-        expand = c(0.075, 0), breaks = df$feature, labels = df$yLabel)
     gg <- gg + labs(
-        title = paste0(gsub(":", sep, geneID)), #y = "Feature",
-        color = "Feature"
+        title = paste0(gsub(":", sep, geneID)), color = "Feature"
     )
     gg <- gg + theme_minimal() + theme(panel.border = element_blank())
-    gg <- gg + theme(axis.ticks = element_blank())
+    # gg <- gg + theme(axis.ticks = element_blank())
     gg <- gg + theme(plot.title = element_text(face = "bold", size = titleSize))
     gg <- gg + theme(plot.title = element_text(hjust = 0.5))
     gg <- gg + theme(
-        legend.position = "bottom",
         axis.title.x = element_blank(),
-        axis.text.y = element_blank(),
         axis.title.y = element_blank(),
         panel.grid.minor.x=element_blank(), panel.grid.major.x=element_blank())
+    # add feature names on the axis (if required)
+    if ("axis" %in% showName) {
+        if ("plot" %in% showName) {
+            gg <- gg + scale_y_discrete(
+                expand = c(0.075, 0), breaks = df$feature, labels = df$feature_type)
+        } else {
+            gg <- gg + scale_y_discrete(
+                expand = c(0.075, 0), breaks = df$feature, labels = df$feature)
+        }
+        gg <- gg + theme(axis.text.y = element_text(size = labelSize))
+    } else {
+        gg <- gg + theme(axis.text.y = element_blank())
+    }
+    # add legend (if required)
+    if ("legend" %in% showName) {
+        gg <- gg + theme(legend.position = "bottom")
+    } else {
+        gg <- gg + theme(legend.position = "none")
+    }
+    # add space on the top of the plot (for feature name)
+    gg <- gg + coord_cartesian(
+        clip = 'off', ylim = c(1, nlevels(as.factor(df$feature)) + 0.5)
+    )
     return(gg)
 }
 
 pairDomainPlotting <- function(
         seed = NULL, ortho = NULL, seedDf = NULL, orthoDf = NULL,
-        minStart = 0, maxEnd = 999, labelSize = 12, titleSize = 12
+        minStart = 0, maxEnd = 999, labelSize = 12, titleSize = 12,
+        showScore = NULL, showName = "plot"
 ) {
     if(is.null(seed) | is.null(ortho) | is.null(seedDf) | is.null(orthoDf))
         stop("Seed/Ortho ID or domain dataframe is NULL!")
@@ -292,18 +360,22 @@ pairDomainPlotting <- function(
     # plot
     sep <- "|"
     plotOrtho <- singleDomainPlotting(
-        orthoDf, ortho, sep, labelSize, titleSize, minStart, maxEnd,colorScheme)
+        orthoDf, ortho, sep, labelSize, titleSize, minStart, maxEnd,colorScheme, showScore, showName)
     plotSeed <- singleDomainPlotting(
-        seedDf, seed, sep, labelSize, titleSize, minStart, maxEnd, colorScheme)
+        seedDf, seed, sep, labelSize, titleSize, minStart, maxEnd, colorScheme, showScore, showName)
     if (ortho == seed) {
         g <- plotSeed
     } else {
         seedHeight <- length(levels(as.factor(seedDf$feature)))
         orthoHeight <- length(levels(as.factor(orthoDf$feature)))
-        g <- grid_arrange_shared_legend(
-            plotSeed, plotOrtho,
-            ncol = 1, nrow = 2, position = "bottom"
-        )
+        if ("legend" %in% showName) {
+            g <- grid_arrange_shared_legend(
+                plotSeed, plotOrtho,
+                ncol = 1, nrow = 2, position = "bottom"
+            )
+        } else {
+            g <- gridExtra::arrangeGrob(plotSeed, plotOrtho, ncol = 1, nrow = 2)
+        }
     }
     return(g)
 }

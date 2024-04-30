@@ -6,15 +6,14 @@
 #' @import DT
 #' @import PhyloProfile
 #' @import RColorBrewer
-#' @import data.table
+#' @importFrom data.table tstrsplit fread  
 #' @import dplyr
 #' @import ggplot2
 #' @import grid
-#' @import gridExtra
+#' @importFrom gridExtra arrangeGrob
 #' @import jsonlite
 #' @import pbapply
 #' @import shinyFiles
-#' @import shinyalert
 #' @import shinythemes
 #' @import stringr
 #' @rawNamespace import(shinyjs, except = colourInput)

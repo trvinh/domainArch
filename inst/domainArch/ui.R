@@ -7,7 +7,7 @@ shinyUI(
         # Application title
         titlePanel("", windowTitle = "domainArch"),
         navbarPage(
-            em(strong("domainArch v0.0.1")),
+            em(strong("domainArch v0.0.2")),
             id = "tabs",
             collapsible = TRUE,
             inverse = TRUE,

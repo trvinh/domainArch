@@ -458,9 +458,12 @@ shinyServer(function(input, output, session) {
             seq2 <- input$seq2
             if (input$seq2 == "none") seq2 <- input$seq1
             g <- createArchiPlot2(
-                c(input$seed1, seq2), 
-                getDomainInformation(), 
-                input$labelArchiSize, input$titleArchiSize
+                c(input$seed1, seq2), filterDomainData(), 
+                input$labelArchiSize, input$titleArchiSize, input$showScore, 
+                input$showName, input$firstDist, input$nameType, 
+                input$nameSize, input$nameColor, input$labelPos, input$colorType,
+                input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
+                input$featureTypeOrder, input$colorPallete, input$resolveOverlap
             )
             grid.draw(g)
             ggsave(

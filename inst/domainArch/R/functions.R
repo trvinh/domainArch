@@ -96,7 +96,12 @@ getOrthoIDs <- function (groupID = NULL, file = NULL) {
         stringsAsFactors = FALSE
     )
     df[c("groupID", "tmp")] <- str_split_fixed(df$V1, '#', 2)
-    return(levels(as.factor(df$V2[df$groupID == groupID])))
+    idDf <- data.frame(oriID = levels(as.factor(df$V2[df$groupID == groupID])))
+    idDf$seqID <- sapply(str_split(idDf$oriID, "\\|"), "[", 3)
+    idDf$ncbiID <- sapply(str_split(idDf$oriID, "@"), "[", 2)
+    id2nameDf <- PhyloProfile::id2name(idDf$ncbiID, currentNCBIinfo)
+    idDf <- merge(idDf, id2nameDf, by = "ncbiID", all.x = TRUE)
+    return(setNames(idDf$oriID, paste(idDf$fullName, idDf$seqID, sep = " - ")))
 }
 
 getSpecList <- function (annoDir = NULL) {
@@ -319,7 +324,7 @@ singleDomainPlotting <- function(
     # draw lines for representing sequence length
     if ("length" %in% colnames(df))
         gg <- gg + geom_segment(
-            data = df, size = 1, color = "#b2b2b2", alpha = 0.0,
+            data = df, linewidth = 1, color = "#b2b2b2", alpha = 0.0,
             aes(x = 0, xend = length, y = feature, yend = feature))
     # draw features
     gg <- gg + geom_segment(
@@ -634,6 +639,8 @@ checkOverlapDomains <- function(domainDf) {
     overlappedType <- lapply(
         df$tmp[df$n > 1],
         function (x) {
+            if (length(df$feature[df$tmp == x]) > 1) 
+                return(df$feature_type[df$tmp == x])
             ed <- df$end[df$tmp == x][1]
             st <- df$start[df$tmp == x][1]
             type <- df$feature_type[df$tmp == x][1]

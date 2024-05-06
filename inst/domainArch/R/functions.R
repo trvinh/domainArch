@@ -67,13 +67,13 @@ getGroupIds <- function (
 ) {
     if(inputType == "File") {
         df <- read.csv(
-            domainFile, header = FALSE, sep = "\t", 
+            domainFile, header = FALSE, sep = "\t",
             stringsAsFactors = FALSE
         )
         df[c("groupID", "tmp")] <- str_split_fixed(df$V1, '#', 2)
         return(levels(as.factor(df$groupID)))
         #     list(
-        #         levels(as.factor(df$groupID)), 
+        #         levels(as.factor(df$groupID)),
         #         #levels(as.factor(df$V2[df$groupID == input$seed]))
         #         levels(as.factor(df$groupID))
         #     )
@@ -89,19 +89,23 @@ getGroupIds <- function (
     }
 }
 
-getOrthoIDs <- function (groupID = NULL, file = NULL) {
+getOrthoIDs <- function (groupID = NULL, file = NULL, currentNCBIinfo = NULL) {
     if (is.null(groupID) || is.null(file)) return(NULL)
     df <- read.csv(
-        file, header = FALSE, sep = "\t", 
+        file, header = FALSE, sep = "\t",
         stringsAsFactors = FALSE
     )
     df[c("groupID", "tmp")] <- str_split_fixed(df$V1, '#', 2)
     idDf <- data.frame(oriID = levels(as.factor(df$V2[df$groupID == groupID])))
     idDf$seqID <- sapply(str_split(idDf$oriID, "\\|"), "[", 3)
     idDf$ncbiID <- sapply(str_split(idDf$oriID, "@"), "[", 2)
-    id2nameDf <- PhyloProfile::id2name(idDf$ncbiID, currentNCBIinfo)
-    idDf <- merge(idDf, id2nameDf, by = "ncbiID", all.x = TRUE)
-    return(setNames(idDf$oriID, paste(idDf$fullName, idDf$seqID, sep = " - ")))
+    if (is.null(currentNCBIinfo)) {
+        return(setNames(idDf$oriID, idDf$oriID))
+    } else {
+        id2nameDf <- PhyloProfile::id2name(idDf$ncbiID, currentNCBIinfo)
+        idDf <- merge(idDf, id2nameDf, by = "ncbiID", all.x = TRUE)
+        return(setNames(idDf$oriID, paste(idDf$fullName, idDf$seqID, sep = " - ")))
+    }
 }
 
 getSpecList <- function (annoDir = NULL) {
@@ -123,15 +127,15 @@ parseDomainFromJson <- function (spec = NULL, protIds = NULL, jsonList = NULL) {
         protIds,
         function (id) {
             featList <- lapply(
-                c("flps", "tmhmm", "signalp", "coils2", "seg", "smart", "pfam"), 
+                c("flps", "tmhmm", "signalp", "coils2", "seg", "smart", "pfam"),
                 function (x) {
                     if (length(jsonList$feature[[id]][[x]]) > 0) {
                         instanceList <- lapply(
-                            names(jsonList$feature[[id]][[x]]), 
+                            names(jsonList$feature[[id]][[x]]),
                             function (y) {
                                 return(
                                     c(
-                                        y, 
+                                        y,
                                         jsonList$feature[[id]][[x]][[y]]$instance[1:2]
                                     )
                                 )
@@ -162,13 +166,13 @@ parseDomainFromJson <- function (spec = NULL, protIds = NULL, jsonList = NULL) {
         message("No domain found for ", protIds, " in ", spec)
         return(NULL)
     }
-    
+
 }
 
 
 createArchiPlot2 <- function(
         info = NULL, domainDf = NULL, labelArchiSize = 12, titleArchiSize = 12,
-        showScore = NULL, showName = "plot", firstDist = 0.5, 
+        showScore = NULL, showName = "plot", firstDist = 0.5,
         nameType = "Labels", nameSize = 5, nameColor = "#000000", labelPos = "Above",
         colorType = "Unique", ignoreInstanceNo = FALSE, currentNCBIinfo = NULL,
         featureTypeSort = "Yes", featureTypeOrder = NULL, colorPallete = "Paired",
@@ -185,7 +189,7 @@ createArchiPlot2 <- function(
     subdomainDf <- domainDf
     subdomainDf$feature <- as.character(subdomainDf$feature)
     orthoID <- NULL
-    
+
     if (nrow(subdomainDf) < 1) return(paste0("No domain info available!"))
     else {
         # get minStart and maxEnd
@@ -199,19 +203,19 @@ createArchiPlot2 <- function(
         if (nrow(seedDf) == 0) seedDf <- orthoDf
         seed <- as.character(seedDf$orthoID[1])
         if (nrow(seedDf) == 0) return(paste0("No domain info available!"))
-        
+
         # simplify seed/ortho seq IDs if they are in bionf format
         if (!is.null(currentNCBIinfo)) {
             if (str_count(seed, ":") >= 2 & str_count(seed, "@") >= 2) {
                 seedTmp <- strsplit(as.character(seed),':', fixed = TRUE)[[1]]
-                seedSpec <- 
+                seedSpec <-
                     strsplit(as.character(seedTmp[2]),'@', fixed = TRUE)[[1]][2]
                 seed <- paste0(
                     id2name(seedSpec, currentNCBIinfo)[,2], " - ", seedTmp[3]
                 )
                 if (ortho != seed) {
                     orthoTmp <- strsplit(as.character(ortho),':', fixed = TRUE)[[1]]
-                    orthoSpec <- 
+                    orthoSpec <-
                         strsplit(as.character(orthoTmp[2]),'@',fixed = TRUE)[[1]][2]
                     ortho <- paste0(
                         id2name(orthoSpec, currentNCBIinfo)[,2], " - ", orthoTmp[3]
@@ -219,7 +223,7 @@ createArchiPlot2 <- function(
                 }
             }
         }
-        
+
         # add feature colors
         featureColorDf <- addFeatureColors(seedDf, orthoDf, colorType, colorPallete, ignoreInstanceNo)
         seedDf <- featureColorDf[[1]]
@@ -234,7 +238,7 @@ createArchiPlot2 <- function(
             orthoDf$featureOri <- orthoDf$feature
             orthoDf$featureOri <- as.character(orthoDf$featureOri)
         }
-        
+
         if (nrow(orthoDf) > 0) {
             if (all.equal(seedDf, orthoDf)[1] == TRUE) featureTypeSort <- "No"
             # sort features
@@ -254,7 +258,7 @@ createArchiPlot2 <- function(
                 orderedSeedDf <- sortDomainsByList(seedDf, featureTypeOrder)
                 orderedOrthoDf <- sortDomainsByList(orthoDf, featureTypeOrder)
             }
-           
+
             # join weight values and feature names
             if ("weight" %in% colnames(orderedOrthoDf)) {
                 NULL
@@ -269,7 +273,7 @@ createArchiPlot2 <- function(
             # plotting
             g <- pairDomainPlotting(
                 seed, ortho, orderedSeedDf, orderedOrthoDf, minStart, maxEnd,
-                labelArchiSize, titleArchiSize, showScore, showName, firstDist, 
+                labelArchiSize, titleArchiSize, showScore, showName, firstDist,
                 nameType, nameSize, nameColor, labelPos, colorPallete)
         } else {
             # orderedSeedDf <- seedDf[order(seedDf$feature), ]
@@ -282,7 +286,7 @@ createArchiPlot2 <- function(
             # plotting
             g <- pairDomainPlotting(
                 seed, seed, orderedSeedDf, orderedSeedDf, minStart, maxEnd,
-                labelArchiSize, titleArchiSize, showScore, showName, firstDist, 
+                labelArchiSize, titleArchiSize, showScore, showName, firstDist,
                 nameType, nameSize, nameColor, labelPos, colorPallete)
         }
         return(g)
@@ -291,12 +295,12 @@ createArchiPlot2 <- function(
 
 singleDomainPlotting <- function(
         df = NULL, geneID = "GeneID", sep = "|", labelSize = 12, titleSize = 12,
-        minStart = NULL, maxEnd = NULL, colorPallete = "Set2", 
-        showScore = NULL, showName = "plot", firstDist = 0.5, 
+        minStart = NULL, maxEnd = NULL, colorPallete = "Set2",
+        showScore = NULL, showName = "plot", firstDist = 0.5,
         nameType = "Labels", nameSize = 5, nameColor = "#000000", labelPos = "Above"
 ){
     feature <- feature_id_mod <- end <- start <- NULL
-    
+
     # parse parameters
     if (is.null(df)) return(ggplot() + theme_void())
     if (is.null(minStart)) minStart <- min(df$start)
@@ -312,7 +316,7 @@ singleDomainPlotting <- function(
                     RColorBrewer::brewer.pal(
                         nlevels(as.factor(df$feature)), colorPallete
                     )
-                ), 
+                ),
                 levels(as.factor(df$feature))
             ),
             .Names = levels(as.factor(df$feature)))
@@ -320,7 +324,7 @@ singleDomainPlotting <- function(
 
     # initiate ggplot object
     gg <- ggplot(df, aes(y = feature, x = end))
-    
+
     # draw lines for representing sequence length
     if ("length" %in% colnames(df))
         gg <- gg + geom_segment(
@@ -331,7 +335,7 @@ singleDomainPlotting <- function(
         data = df, aes(x = start, xend = end, y = feature, yend = feature, color = as.factor(featureOri)),
         linewidth = nameSize, lineend = "round", alpha = 0.7) +
         scale_color_manual(values = colorScheme)
-    
+
     # add feature names
     if ("plot" %in% showName) {
         if (nameType == "Labels") {
@@ -438,13 +442,13 @@ singleDomainPlotting <- function(
 pairDomainPlotting <- function(
         seed = NULL, ortho = NULL, seedDf = NULL, orthoDf = NULL,
         minStart = 0, maxEnd = 999, labelSize = 12, titleSize = 12,
-        showScore = NULL, showName = "plot", firstDist = 0.5, 
+        showScore = NULL, showName = "plot", firstDist = 0.5,
         nameType = "Labels", nameSize = 5, nameColor = "#000000", labelPos = "Above",
         colorPallete = "Paired"
 ) {
     if(is.null(seed) | is.null(ortho) | is.null(seedDf) | is.null(orthoDf))
         stop("Seed/Ortho ID or domain dataframe is NULL!")
-    
+
     sep <- "|"
     plotOrtho <- singleDomainPlotting(
         orthoDf, ortho, sep, labelSize, titleSize, minStart, maxEnd, colorPallete,
@@ -501,7 +505,7 @@ sortDomains <- function(seedDf, orthoDf){
     # sort orthoDf
     index <- with(orderedOrthoDf, order(orderNo))
     orderedOrthoDf <- orderedOrthoDf[index, ]
-    
+
     #turn feature column into a character vector
     orderedOrthoDf$feature <- as.character(orderedOrthoDf$feature)
     #then turn it back into an ordered factor (to keep this order when plotting)
@@ -525,7 +529,7 @@ grid_arrange_shared_legend <- function (
     lwidth <- sum(legend$width)
     gl <- lapply(plots, function(x) x + theme(legend.position = "none"))
     gl <- c(gl, ncol = ncol, nrow = nrow)
-    
+
     combined <- switch(
         position,
         "bottom" = gridExtra::arrangeGrob(
@@ -541,7 +545,7 @@ grid_arrange_shared_legend <- function (
             widths = grid::unit.c(unit(1, "npc") - lwidth, lwidth)
         )
     )
-    
+
     return(combined)
 }
 
@@ -576,12 +580,12 @@ getDomainLink <- function(info, domainDf) {
     pfamDf <- data.frame(ID = character(), PFAM = character())
     if (length(featurePfam) > 0)
         pfamDf <- createLinkTable(featurePfam, "pfam")
-    
+
     featureSmart <- unique(feature[grep("smart", feature)])
     smartDf <- data.frame(ID = character(), SMART = character())
     if (length(featureSmart) > 0)
         smartDf <- createLinkTable(featureSmart, "smart")
-    
+
     featDf <- merge(pfamDf, smartDf, by = "ID", all = TRUE)
     colnames(featDf) <- c("ID", "PFAM", "SMART")
     return(featDf)
@@ -600,7 +604,7 @@ createLinkTable <- function(featureList, featureType) {
                 data.table::tstrsplit(as.character(feature), '@', fixed = TRUE)
             )
         )
-        
+
         featDf <- data.frame("ID" = levels(as.factor(tmpDf$X2)))
         if (featureType == "pfam") {
             # featDf$type <- "PFAM"
@@ -639,12 +643,12 @@ checkOverlapDomains <- function(domainDf) {
     overlappedType <- lapply(
         df$tmp[df$n > 1],
         function (x) {
-            if (length(df$feature[df$tmp == x]) > 1) 
+            if (length(df$feature[df$tmp == x]) > 1)
                 return(df$feature_type[df$tmp == x])
             ed <- df$end[df$tmp == x][1]
             st <- df$start[df$tmp == x][1]
             type <- df$feature_type[df$tmp == x][1]
-            
+
             subDf <- df[
                 !(df$tmp == x) & df$feature_type == type & df$start < ed & df$end > st,
             ]
@@ -665,7 +669,7 @@ resolveOverlapFeatures <- function(domainDf) {
     domainDf$featureOri <- as.character(domainDf$featureOri)
     if (length(overlappedType) > 0) {
         domainDf$feature <- ifelse(
-            !(domainDf$feature_type %in% overlappedType), 
+            !(domainDf$feature_type %in% overlappedType),
             domainDf$feature_type,
             domainDf$feature
         )
@@ -680,11 +684,11 @@ resolveOverlapFeatures <- function(domainDf) {
 #' have the same colors
 
 addFeatureColors <- function(
-        seedDf = NULL, orthoDf = NULL, colorType = "all", 
+        seedDf = NULL, orthoDf = NULL, colorType = "all",
         colorPallete = "Paired", ignoreInstanceNo = FALSE
 ) {
     if (is.null(seedDf) | is.null(orthoDf)) stop("Domain Df cannot be null!")
-    
+
     featureSeedCount <- seedDf %>% dplyr::count(feature)
     featureOrthoCount <- orthoDf %>% dplyr::count(feature)
     featureCount <- merge(featureSeedCount, featureOrthoCount, by = "feature", all = TRUE)
@@ -692,17 +696,17 @@ addFeatureColors <- function(
     featureCount$type[featureCount$n.x == featureCount$n.y] <- "shared"
     if (ignoreInstanceNo == TRUE)
         featureCount$type[!is.na(featureCount$n.x) & !is.na(featureCount$n.y)] <- "shared"
-    
+
     featureCount$feature <- as.character(featureCount$feature)
     sharedFeatures <- unique(featureCount$feature[featureCount$type == "shared"])
     uniqueFeatures <- unique(featureCount$feature[featureCount$type == "unique"])
     allFeatures <- c(sharedFeatures, uniqueFeatures)
-    
-    if (colorType == "Unique" & length(uniqueFeatures) == 0) 
+
+    if (colorType == "Unique" & length(uniqueFeatures) == 0)
         colorType = "All"
-    if (colorType == "Shared" & length(sharedFeatures) == 0) 
-        colorType = "All" 
-    
+    if (colorType == "Shared" & length(sharedFeatures) == 0)
+        colorType = "All"
+
     if (colorType == "Unique") {
         sharedFeaturesColors <- rep("#C9C9C9", length(sharedFeatures))
         uniqueFeaturesColors <- getQualColForVector(uniqueFeatures)
@@ -744,7 +748,7 @@ addFeatureColors <- function(
         tmpDf$X2[tmpDf$X2 == ""] <- tmpDf$X1[tmpDf$X2 == ""]
         typeColorDf <- data.frame(
             colors = head(
-                suppressWarnings(RColorBrewer::brewer.pal(nlevels(as.factor(tmpDf$X1)), colorPallete)), 
+                suppressWarnings(RColorBrewer::brewer.pal(nlevels(as.factor(tmpDf$X1)), colorPallete)),
                 nlevels(as.factor(tmpDf$X1))
             ),
             X1 = levels(as.factor(tmpDf$X1))
@@ -752,11 +756,11 @@ addFeatureColors <- function(
         tmpDf <- merge(tmpDf, typeColorDf, all.x = TRUE)
         colorScheme <- data.frame(color = tmpDf$colors, feature = tmpDf$name)
     }
-    
+
     # add color to seedDf and orthoDf
     seedDf <- merge(seedDf, colorScheme, by = "feature", all.x = TRUE)
     orthoDf <- merge(orthoDf, colorScheme, by = "feature", all.x = TRUE)
-    
+
     return(list(seedDf, orthoDf))
 }
 
@@ -764,12 +768,12 @@ addFeatureColors <- function(
 splitDomainFile <- function(domainFile = NULL, outPath = NULL) {
     if (is.null(domainFile)) stop("Domain file cannot be NULL")
     if (is.null(outPath)) stop("Output path cannot be NULL")
-    
+
     df <- fread(
         domainFile, header = TRUE, stringsAsFactors = FALSE, sep = "\t"
     )
     setDT(df)[, paste0("# pairID", 1:2) := tstrsplit(`# pairID`, "#")]
-    
+
     dir.create(file.path(outPath), showWarnings = FALSE)
     outList <- lapply(
         levels(as.factor(df$`# pairID1`)),
@@ -796,5 +800,5 @@ splitDomainFile <- function(domainFile = NULL, outPath = NULL) {
         message("Something went wrong...")
         message("Please check the R terminal and the output folder!")
     }
-    
+
 }

@@ -150,12 +150,12 @@ shinyServer(function(input, output, session) {
                 selectInput(
                     "seq1",
                     "Protein 1",
-                    getOrthoIDs(input$seed1, domainFile),
+                    getOrthoIDs(input$seed1, domainFile, currentNCBIinfo),
                 ),
                 selectInput(
                     "seq2",
                     "Protein 2",
-                    c("none", getOrthoIDs(input$seed1, domainFile)),
+                    c("none", getOrthoIDs(input$seed1, domainFile, currentNCBIinfo)),
                     selected = "none"
                 )
             )

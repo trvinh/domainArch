@@ -130,49 +130,49 @@ shinyServer(function(input, output, session) {
         return(jsonList)
     })
     
-    output$seqID.ui <- renderUI({
+    observe({
         req(input$seed1)
         domainFile <- domainFile2 <- NULL
         
         if (input$inputType == "File") domainFile <- getDomainFile()
-        if (input$inputType == "Folder") 
+        if (input$inputType == "Folder")
             domainFile <- paste0(getDomainDir(),"/",input$seed1,".domains")
         if (input$inputType == "Anno") {
             domainFile <- paste0(getAnnoDir(),"/",input$seed1,".json")
             if (input$seed2 != "none")
                 domainFile2 <- paste0(getAnnoDir(),"/",input$seed2,".json")
         }
-            
-        if(!file.exists(domainFile)) stop(paste(domainFile, "not found!"))
         
+        if(!file.exists(domainFile)) stop(paste(domainFile, "not found!"))
         if (grepl(".domains", domainFile)) {
-            list(
-                selectInput(
-                    "seq1",
-                    "Protein 1",
-                    getOrthoIDs(input$seed1, domainFile, currentNCBIinfo),
-                ),
-                selectInput(
-                    "seq2",
-                    "Protein 2",
-                    c("none", getOrthoIDs(input$seed1, domainFile, currentNCBIinfo)),
-                    selected = "none"
-                )
+            updateSelectizeInput(
+                session, "seq1",
+                "Protein 1",
+                getOrthoIDs(input$seed1, domainFile, currentNCBIinfo),
+                server = TRUE
             )
+            updateSelectizeInput(
+                session, "seq2",
+                "Protein 2",
+                c("none", getOrthoIDs(input$seed1, domainFile, currentNCBIinfo)),
+                selected = "none",
+                server = TRUE
+            )
+                
         } else {
             withProgress(message = 'Reading JSON input...', value = 0.5, {
                 jsonList <- getJonsList()
-                list(
-                    selectInput(
-                        "seq1",
-                        "Protein 1",
-                        names(jsonList[[1]]$feature)
-                    ),
-                    selectInput(
-                        "seq2",
-                        "Protein 2",
-                        c("none", names(jsonList[[2]]$feature))
-                    )
+                updateSelectizeInput(
+                    session, "seq1",
+                    "Protein 1",
+                    names(jsonList[[1]]$feature),
+                    server = TRUE
+                )
+                updateSelectizeInput(
+                    session, "seq2",
+                    "Protein 2",
+                    c("none", names(jsonList[[2]]$feature)),
+                    server = TRUE
                 )
             })
         }
@@ -261,6 +261,7 @@ shinyServer(function(input, output, session) {
                 }
             }
             # filter domain df by features
+            if (is.null(outDf)) return(NULL)
             if (nrow(outDf) == 0) return(NULL)
             outDf[c("feature_type","feature_id")] <- str_split_fixed(outDf$feature, '_', 2)
             outDf <- outDf[!(outDf$feature_type %in% input$feature),]

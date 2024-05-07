@@ -775,6 +775,7 @@ splitDomainFile <- function(domainFile = NULL, outPath = NULL) {
     setDT(df)[, paste0("# pairID", 1:2) := tstrsplit(`# pairID`, "#")]
 
     dir.create(file.path(outPath), showWarnings = FALSE)
+    message("Please wait...")
     outList <- lapply(
         levels(as.factor(df$`# pairID1`)),
         function (x) {

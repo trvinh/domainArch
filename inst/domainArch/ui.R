@@ -58,7 +58,16 @@ shinyUI(
                     ),
                     br(),
                     uiOutput("seedID.ui"),
-                    uiOutput("seqID.ui"),
+                    selectizeInput(
+                        "seq1",
+                        "Protein 1",
+                        choices = NULL
+                    ),
+                    selectizeInput(
+                        "seq2",
+                        "Protein 2",
+                        choices = NULL
+                    ),
                     bsButton("doPlot", "Plot", style = "info")
                 ),
                 mainPanel(

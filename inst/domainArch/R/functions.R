@@ -173,7 +173,7 @@ parseDomainFromJson <- function (spec = NULL, protIds = NULL, jsonList = NULL) {
 createArchiPlot2 <- function(
         info = NULL, domainDf = NULL, labelArchiSize = 12, titleArchiSize = 12,
         showScore = NULL, showName = "plot", firstDist = 0.5,
-        nameType = "Labels", nameSize = 5, nameColor = "#000000", labelPos = "Above",
+        nameType = "Labels", nameSize = 3, segmentSize = 5, nameColor = "#000000", labelPos = "Above",
         colorType = "Unique", ignoreInstanceNo = FALSE, currentNCBIinfo = NULL,
         featureTypeSort = "Yes", featureTypeOrder = NULL, colorPallete = "Paired",
         resolveOverlap = "Yes"
@@ -274,7 +274,7 @@ createArchiPlot2 <- function(
             g <- pairDomainPlotting(
                 seed, ortho, orderedSeedDf, orderedOrthoDf, minStart, maxEnd,
                 labelArchiSize, titleArchiSize, showScore, showName, firstDist,
-                nameType, nameSize, nameColor, labelPos, colorPallete)
+                nameType, nameSize, segmentSize, nameColor, labelPos, colorPallete)
         } else {
             # orderedSeedDf <- seedDf[order(seedDf$feature), ]
             orderedSeedDf <- sortDomainsByList(seedDf, featureTypeOrder)
@@ -287,7 +287,7 @@ createArchiPlot2 <- function(
             g <- pairDomainPlotting(
                 seed, seed, orderedSeedDf, orderedSeedDf, minStart, maxEnd,
                 labelArchiSize, titleArchiSize, showScore, showName, firstDist,
-                nameType, nameSize, nameColor, labelPos, colorPallete)
+                nameType, nameSize, segmentSize, nameColor, labelPos, colorPallete)
         }
         return(g)
     }
@@ -297,7 +297,7 @@ singleDomainPlotting <- function(
         df = NULL, geneID = "GeneID", sep = "|", labelSize = 12, titleSize = 12,
         minStart = NULL, maxEnd = NULL, colorPallete = "Set2",
         showScore = NULL, showName = "plot", firstDist = 0.5,
-        nameType = "Labels", nameSize = 5, nameColor = "#000000", labelPos = "Above"
+        nameType = "Labels", nameSize = 3, segmentSize = 5, nameColor = "#000000", labelPos = "Above"
 ){
     feature <- feature_id_mod <- end <- start <- NULL
 
@@ -333,7 +333,7 @@ singleDomainPlotting <- function(
     # draw features
     gg <- gg + geom_segment(
         data = df, aes(x = start, xend = end, y = feature, yend = feature, color = as.factor(featureOri)),
-        linewidth = nameSize, lineend = "round", alpha = 0.7) +
+        linewidth = segmentSize, lineend = "round", alpha = 0.7) +
         scale_color_manual(values = colorScheme)
 
     # add feature names
@@ -342,24 +342,24 @@ singleDomainPlotting <- function(
             if (labelPos == "Above") {
                 gg <- gg + geom_label(
                     aes(label = str_wrap(feature_id_mod), x = (start+end)/2),
-                    color = "black", vjust = -0.5
+                    color = "black", vjust = -0.5, size = nameSize
                 )
             } else if (labelPos == "Below") {
                 gg <- gg + geom_label(
                     aes(label = str_wrap(feature_id_mod), x = (start+end)/2),
-                    color = "black", vjust = 1.5
+                    color = "black", vjust = 1.5, size = nameSize
                 )
             } else {
                 gg <- gg + geom_label(
                     aes(label = str_wrap(feature_id_mod), x = (start+end)/2),
-                    color = "black", size = nameSize - 2
+                    color = "black", size = nameSize #, size = segmentSize - 2
                 )
             }
         } else {
             gg <- gg + geom_text(
                 aes(label = str_wrap(feature_id_mod),
                     x = (start+end)/2),
-                color = nameColor, check_overlap = TRUE, size = nameSize - 2
+                color = nameColor, check_overlap = TRUE, size = nameSize
             )
         }
     }
@@ -436,6 +436,8 @@ singleDomainPlotting <- function(
     gg <- gg + coord_cartesian(
         clip = 'off', ylim = c(1, nlevels(as.factor(df$feature)) + firstDist)
     )
+    # scale x-axis to the length of the longest protein
+    gg <- gg + xlim(0, maxEnd)
     return(gg)
 }
 
@@ -443,7 +445,7 @@ pairDomainPlotting <- function(
         seed = NULL, ortho = NULL, seedDf = NULL, orthoDf = NULL,
         minStart = 0, maxEnd = 999, labelSize = 12, titleSize = 12,
         showScore = NULL, showName = "plot", firstDist = 0.5,
-        nameType = "Labels", nameSize = 5, nameColor = "#000000", labelPos = "Above",
+        nameType = "Labels", nameSize = 3, segmentSize = 5, nameColor = "#000000", labelPos = "Above",
         colorPallete = "Paired"
 ) {
     if(is.null(seed) | is.null(ortho) | is.null(seedDf) | is.null(orthoDf))
@@ -452,10 +454,10 @@ pairDomainPlotting <- function(
     sep <- "|"
     plotOrtho <- singleDomainPlotting(
         orthoDf, ortho, sep, labelSize, titleSize, minStart, maxEnd, colorPallete,
-        showScore, showName, firstDist, nameType, nameSize, nameColor, labelPos)
+        showScore, showName, firstDist, nameType, nameSize, segmentSize, nameColor, labelPos)
     plotSeed <- singleDomainPlotting(
         seedDf, seed, sep, labelSize, titleSize, minStart, maxEnd, colorPallete,
-        showScore, showName, firstDist, nameType, nameSize, nameColor, labelPos)
+        showScore, showName, firstDist, nameType, nameSize, segmentSize, nameColor, labelPos)
     if (ortho == seed) {
         g <- plotSeed
     } else {

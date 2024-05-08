@@ -380,7 +380,7 @@ shinyServer(function(input, output, session) {
                     c(input$seed1, seq2), filterDomainData(), 
                     input$labelArchiSize, input$titleArchiSize, input$showScore, 
                     input$showName, input$firstDist, input$nameType, 
-                    input$nameSize, input$nameColor, input$labelPos, input$colorType,
+                    input$nameSize, input$segmentSize, input$nameColor, input$labelPos, input$colorType,
                     input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
                     input$featureTypeOrder, input$colorPallete, input$resolveOverlap
                 )
@@ -462,7 +462,7 @@ shinyServer(function(input, output, session) {
                 c(input$seed1, seq2), filterDomainData(), 
                 input$labelArchiSize, input$titleArchiSize, input$showScore, 
                 input$showName, input$firstDist, input$nameType, 
-                input$nameSize, input$nameColor, input$labelPos, input$colorType,
+                input$nameSize, input$segmentSize, input$nameColor, input$labelPos, input$colorType,
                 input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
                 input$featureTypeOrder, input$colorPallete, input$resolveOverlap
             )

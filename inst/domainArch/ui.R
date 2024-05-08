@@ -7,7 +7,7 @@ shinyUI(
         # Application title
         titlePanel("", windowTitle = "domainArch"),
         navbarPage(
-            em(strong("domainArch v0.0.4")),
+            em(strong("domainArch v0.0.5")),
             id = "tabs",
             collapsible = TRUE,
             inverse = TRUE,
@@ -152,19 +152,31 @@ shinyUI(
                             ),
                             column(
                                 6,
-                                createTextSize(
-                                    "nameSize", "Feature segment size (mm)", 5, 200
+                                column(
+                                    6,
+                                    createTextSize(
+                                        "segmentSize", "Feature segment size (mm)", 5, 200
+                                    )
                                 ),
-                                sliderInput(
-                                    "firstDist", "Distance between plot title and the 1st feature", 
-                                    min = 0, max = 5, value = 0.5, step = 0.1, width = 400
+                                column(
+                                    6,
+                                    createTextSize(
+                                        "nameSize", "Feature ID size (mm)", 3, 200
+                                    )
+                                ),
+                                column(
+                                    12,
+                                    sliderInput(
+                                        "firstDist", "Distance between plot title and the 1st feature", 
+                                        min = 0, max = 5, value = 0.5, step = 0.1, width = 400
+                                    )
                                 )
                             ),
                             column(
                                 6,
                                 radioButtons(
                                     "colorType","Color feature instances", inline = TRUE,
-                                    choices = c("Shared","Unique","All","Feature type"), selected = "All"
+                                    choices = c("Shared","Unique","All","Feature class"), selected = "All"
                                 ),
                                 checkboxInput(
                                     "ignoreInstanceNo", "Ignore number of instances", value = FALSE
@@ -238,7 +250,7 @@ shinyUI(
             size = "small",
             br(),
             radioButtons(
-                "nameType","Type of feature names", inline = TRUE,
+                "nameType","Type of feature IDs", inline = TRUE,
                 choices = c("Labels","Texts"), selected = "Labels"
             ),
             conditionalPanel(
@@ -267,7 +279,7 @@ shinyUI(
                 multiple = TRUE
             ),
             radioButtons(
-                "featureTypeSort","Sort feature types by shared features", inline = TRUE,
+                "featureTypeSort","Sort feature classes by shared features", inline = TRUE,
                 choices = c("Yes","No"), selected = "Yes"
             ),
             conditionalPanel(

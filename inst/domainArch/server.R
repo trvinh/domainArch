@@ -81,6 +81,14 @@ shinyServer(function(input, output, session) {
         }
     })
     
+    # disable input after plotting =============================================
+    observeEvent(input$doPlot,{
+        shinyjs::disable("inputType")
+        if (input$inputType == "File") shinyjs::disable("domainFile")
+        if (input$inputType == "Folder") shinyjs::disable("domainDir")
+        if (input$inputType == "Anno") shinyjs::disable("annoDir")
+    })
+    
     # render seed/species IDs ==================================================
     output$seedID.ui <- renderUI({
         if (input$inputType == "File") req(getDomainFile())
@@ -387,7 +395,7 @@ shinyServer(function(input, output, session) {
                 if (any(g == "No domain info available!")) {
                     msgPlot()
                 } else {
-                    grid::grid.draw(g)
+                    suppressWarnings(grid::grid.draw(g))
                 }
             }
         }

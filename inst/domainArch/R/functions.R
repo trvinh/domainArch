@@ -297,7 +297,8 @@ singleDomainPlotting <- function(
         df = NULL, geneID = "GeneID", sep = "|", labelSize = 12, titleSize = 12,
         minStart = NULL, maxEnd = NULL, colorPallete = "Set2",
         showScore = NULL, showName = "plot", firstDist = 0.5,
-        nameType = "Labels", nameSize = 3, segmentSize = 5, nameColor = "#000000", labelPos = "Above"
+        nameType = "Labels", nameSize = 3, segmentSize = 5, nameColor = "#000000", 
+        labelPos = "Above"
 ){
     feature <- feature_id_mod <- end <- start <- NULL
 
@@ -321,19 +322,23 @@ singleDomainPlotting <- function(
             ),
             .Names = levels(as.factor(df$feature)))
     }
-
     # initiate ggplot object
     gg <- ggplot(df, aes(y = feature, x = end))
-
+    
     # draw lines for representing sequence length
-    if ("length" %in% colnames(df))
+    if ("length" %in% colnames(df)) {
         gg <- gg + geom_segment(
-            data = df, linewidth = 1, color = "#b2b2b2", alpha = 0.0,
+            data = df, linewidth = 0.6, color = "#b2b2b2", alpha = 0.5,
             aes(x = 0, xend = length, y = feature, yend = feature))
+    }
+        
     # draw features
     gg <- gg + geom_segment(
-        data = df, aes(x = start, xend = end, y = feature, yend = feature, color = as.factor(featureOri)),
-        linewidth = segmentSize, lineend = "round", alpha = 0.7) +
+        data = df, aes(
+            x = start, xend = end, y = feature, yend = feature, 
+            color = as.factor(featureOri)
+        ),
+        linewidth = segmentSize, lineend = "round", alpha = 1.0) +
         scale_color_manual(values = colorScheme)
 
     # add feature names
@@ -352,7 +357,7 @@ singleDomainPlotting <- function(
             } else {
                 gg <- gg + geom_label(
                     aes(label = str_wrap(feature_id_mod), x = (start+end)/2),
-                    color = "black", size = nameSize #, size = segmentSize - 2
+                    color = "black", size = nameSize
                 )
             }
         } else {
@@ -405,13 +410,18 @@ singleDomainPlotting <- function(
     gg <- gg + labs(
         title = paste0(gsub(":", sep, geneID)), color = "Feature"
     )
-    gg <- gg + theme_minimal() + theme(panel.border = element_blank())
-    # gg <- gg + theme(axis.ticks = element_blank())
-    gg <- gg + theme(plot.title = element_text(face = "bold", size = titleSize))
-    gg <- gg + theme(plot.title = element_text(hjust = 0.5))
+    gg <- gg + #theme_classic() +
+        theme(
+            axis.line = element_blank(),
+            axis.ticks.y = element_blank(),
+            panel.background = element_blank()
+        )
     gg <- gg + theme(
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
+        plot.title = element_text(face = "bold", size = titleSize, hjust = 0.5)
+    )
+    gg <- gg + theme(
+        axis.title = element_blank(),
+        axis.text.x = element_text(size = labelSize),
         panel.grid.minor.x=element_blank(), panel.grid.major.x=element_blank())
     # add feature names on the axis (if required)
     if ("axis" %in% showName) {
@@ -452,24 +462,26 @@ pairDomainPlotting <- function(
         stop("Seed/Ortho ID or domain dataframe is NULL!")
 
     sep <- "|"
-    plotOrtho <- singleDomainPlotting(
-        orthoDf, ortho, sep, labelSize, titleSize, minStart, maxEnd, colorPallete,
-        showScore, showName, firstDist, nameType, nameSize, segmentSize, nameColor, labelPos)
     plotSeed <- singleDomainPlotting(
         seedDf, seed, sep, labelSize, titleSize, minStart, maxEnd, colorPallete,
         showScore, showName, firstDist, nameType, nameSize, segmentSize, nameColor, labelPos)
     if (ortho == seed) {
         g <- plotSeed
     } else {
-        seedHeight <- length(levels(as.factor(seedDf$feature)))
-        orthoHeight <- length(levels(as.factor(orthoDf$feature)))
+        plotOrtho <- singleDomainPlotting(
+            orthoDf, ortho, sep, labelSize, titleSize, minStart, maxEnd, colorPallete,
+            showScore, showName, firstDist, nameType, nameSize, segmentSize, nameColor, labelPos)
         if ("legend" %in% showName) {
-            g <- grid_arrange_shared_legend(
-                plotSeed, plotOrtho,
-                ncol = 1, nrow = 2, position = "bottom"
+            g <- joinPlotMergeLegends(
+                seedDf, orthoDf, plotSeed, plotOrtho, position = "bottom"
             )
         } else {
-            g <- gridExtra::arrangeGrob(plotSeed, plotOrtho, ncol = 1, nrow = 2)
+            seedHeight <- length(levels(as.factor(seedDf$feature)))
+            orthoHeight <- length(levels(as.factor(orthoDf$feature)))
+            g <- grid.arrange(
+                plotSeed, plotOrtho, nrow = 2, 
+                heights = c(seedHeight, orthoHeight)
+            )
         }
     }
     return(g)
@@ -520,6 +532,56 @@ sortDomains <- function(seedDf, orthoDf){
 
 
 #' Join multiple plots and merge legends
+joinPlotMergeLegends <- function(
+        df1 = NULL, df2 = NULL, plot1 = NULL, plot2 = NULL, 
+        position = c("bottom", "right")) 
+{
+    if (is.null(plot1) | is.null(df1)) stop("No plot data given!")
+    if (is.null(plot2) | is.null(df2))
+        return(plot1 + theme(legend.position = position))
+    # remove legend of the original plots
+    plot1 <- plot1 + theme(legend.position = "none")
+    plot2 <- plot2 + theme(legend.position = "none")
+    # combine plot1 and 2
+    combined_plot <- grid.arrange(
+        plot1, plot2, ncol = 1, 
+        heights = c(
+            length(levels(as.factor(df1$feature))), 
+            length(levels(as.factor(df2$feature)))
+        )
+    )
+    
+    # create a temp plot that contains all features
+    mergedDf <- rbind(df1, df2)
+    colorScheme <- structure(
+        mergedDf$color, .Names = mergedDf$featureOri
+    )
+    tmpPlot <- ggplot() +
+        geom_segment(
+            data = mergedDf, 
+            aes(
+                x = 0, xend = 1, y = 1, yend = 1,
+                color = featureOri
+            ),
+            linewidth = 5, lineend = "round", alpha = 0.7
+        ) +
+        scale_color_manual(values = colorScheme) +
+        labs(color = "Feature") +
+        theme_minimal() +
+        theme(legend.position = position)
+    # extract legend from the temp plot above
+    getOnlyLegend <- function(plot) { 
+        plotTable <- ggplot_gtable(ggplot_build(plot)) 
+        legendPlot <- which(sapply(plotTable$grobs, function(x) x$name) == "guide-box") 
+        legend <- plotTable$grobs[[legendPlot]] 
+        return(legend) 
+    } 
+    legend <- getOnlyLegend(tmpPlot)    
+    # final combined plot with shared legend 
+    combined <- grid.arrange(combined_plot, legend, nrow = 2, heights = c(10, 1))
+    return(combined)
+}
+
 grid_arrange_shared_legend <- function (
     ..., ncol = length(list(...)), nrow = 1, position = c("bottom", "right")
 ) {

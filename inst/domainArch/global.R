@@ -6,9 +6,9 @@ source("R/functions.R")
 
 # List of dependent packages --------------------------------------------------
 packages <- c(
-    "BiocStyle", "data.table", "DT", "dplyr", "jsonlite", "ggplot2", "gridExtra", 
-    "grid", "pbapply", "PhyloProfile", "RColorBrewer", "shiny", "shinyBS", 
-    "shinyFiles", "shinyjs", "shinythemes",  "stringr"
+    "BiocStyle", "data.table", "DT", "dplyr", "extrafont","ggplot2","gridExtra", 
+    "grid", "jsonlite", "pbapply", "PhyloProfile", "RColorBrewer", "shiny", 
+    "shinyBS", "shinyFiles", "shinyjs", "shinythemes",  "stringr"
 )
 
 # Load packages

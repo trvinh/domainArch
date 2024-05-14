@@ -7,7 +7,7 @@ shinyUI(
         # Application title
         titlePanel("", windowTitle = "domainArch"),
         navbarPage(
-            em(strong("domainArch v0.0.5")),
+            em(strong("domainArch v0.0.6")),
             id = "tabs",
             collapsible = TRUE,
             inverse = TRUE,
@@ -189,6 +189,12 @@ shinyUI(
                                     "Color pallete",
                                     choices = c("Paired", "Set1", "Set2", "Set3", "Accent", "Dark2"),
                                     selected = "Paired"
+                                ),
+                                selectInput(
+                                    "font",
+                                    "Font",
+                                    choices = fonts(),
+                                    selected = "Arial"
                                 )
                             )
                         )

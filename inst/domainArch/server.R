@@ -4,6 +4,7 @@ options(
     scipen = 999, # disabling scientific notation
     htmlwidgets.TOJSON_ARGS = list(na = 'string') # to show NA values in table
 )
+if (is.null(fonts())) extrafont::font_import()
 
 #' MAIN SERVER =================================================================
 shinyServer(function(input, output, session) {
@@ -99,22 +100,24 @@ shinyServer(function(input, output, session) {
             type <- 2
         }
         if (type == 1) {
+            choices = c(getGroupIds(input$inputType, getDomainFile(), getDomainDir()))
             selectInput(
                 "seed1",
                 "Seed/Group ID",
-                choices = c(getGroupIds(input$inputType, getDomainFile(), getDomainDir()))
+                choices = choices[nzchar(choices)]
             )
         } else if (type == 2) {
+            choices = c(getSpecList(getAnnoDir()))
             list(
                 selectInput(
                     "seed1",
                     "Species 1",
-                    choices = c(getSpecList(getAnnoDir()))
+                    choices = choices[nzchar(choices)]
                 ),
                 selectInput(
                     "seed2",
                     "Species 2",
-                    choices = c("none", getSpecList(getAnnoDir()))
+                    choices = c("none", choices[nzchar(choices)])
                 )
             )
         }
@@ -156,7 +159,8 @@ shinyServer(function(input, output, session) {
             updateSelectizeInput(
                 session, "seq1",
                 "Protein 1",
-                getOrthoIDs(input$seed1, domainFile, currentNCBIinfo),
+                c("seed", getOrthoIDs(input$seed1, domainFile, currentNCBIinfo)),
+                selected = "seed",
                 server = TRUE
             )
             updateSelectizeInput(
@@ -174,15 +178,41 @@ shinyServer(function(input, output, session) {
                     session, "seq1",
                     "Protein 1",
                     names(jsonList[[1]]$feature),
+                    selected = names(jsonList[[1]]$feature)[1],
                     server = TRUE
                 )
                 updateSelectizeInput(
                     session, "seq2",
                     "Protein 2",
                     c("none", names(jsonList[[2]]$feature)),
+                    selected = "none",
                     server = TRUE
                 )
             })
+        }
+    })
+    
+    # remove option to show best path if no seed protein =====================
+    observe({
+        if (input$seq1 != "seed") {
+            updateCheckboxGroupInput(
+                session, "showInstance",
+                "Show only instances with",
+                choices = c(
+                    "Best E-value" = "evalue", 
+                    "Best Bit-score" = "bitscore"
+                )
+            )
+        } else {
+            updateCheckboxGroupInput(
+                session, "showInstance",
+                "Show only instances with",
+                choices = c(
+                    "Best E-value" = "evalue", 
+                    "Best Bit-score" = "bitscore",
+                    "Paths" = "path"
+                )
+            )
         }
     })
     
@@ -218,6 +248,8 @@ shinyServer(function(input, output, session) {
         # withProgress(message = 'Reading domain input...', value = 0.5, {
             outDf <- NULL
             if (input$inputType != "Anno") {
+                if (input$seq1 == "seed" & input$seq2 == "none")
+                    stop("Please specify protein 1 and/or protein 2!")
                 if (input$inputType == "File") {
                     domainDf <- parseDomainInput(
                         input$seed1,
@@ -230,12 +262,16 @@ shinyServer(function(input, output, session) {
                         getDomainDir(),
                         "folder"
                     )
-                } 
-                # filter domain df by orthoIDs
-                seq2 <- input$seq2
-                if (input$seq2 == "none") seq2 <- input$seq1
-                orthoIDtmp <- gsub("\\|",":",c(input$seq1, seq2))
-                outDf <- domainDf[domainDf$orthoID %in% orthoIDtmp,]
+                }
+                if (input$seq1 == "seed") {
+                    seq2Tmp <- gsub("\\|",":",input$seq2)
+                    orthoDf <- domainDf[domainDf$orthoID == seq2Tmp,]
+                    seedDf <- domainDf[domainDf$seedID == unique(orthoDf$seedID),]
+                    outDf <- rbind(seedDf, orthoDf)
+                } else {
+                    orthoIDtmp <- gsub("\\|",":",c(input$seq1, input$seq2))
+                    outDf <- domainDf[domainDf$orthoID %in% orthoIDtmp,]
+                }
             } else if (input$inputType == "Anno") {
                 jsonList <- getJonsList()
                 domainDf1 <- parseDomainFromJson(
@@ -267,35 +303,6 @@ shinyServer(function(input, output, session) {
                         outDf <- rbind(domainDf1, domainDf2)
                     }
                 }
-            }
-            # filter domain df by features
-            if (is.null(outDf)) return(NULL)
-            if (nrow(outDf) == 0) return(NULL)
-            outDf[c("feature_type","feature_id")] <- str_split_fixed(outDf$feature, '_', 2)
-            outDf <- outDf[!(outDf$feature_type %in% input$feature),]
-            # filter filters without e-value and/or bitscore
-            if ("evalue" %in% colnames(outDf)) {
-                if ("noEvalue" %in% input$feature)
-                    outDf <- outDf[!is.na(outDf$evalue),]
-                if ("noBitscore" %in% input$feature)
-                    outDf <- outDf[!is.na(outDf$bitscore),]
-            }
-            # modify feature IDs
-            outDf$feature_id_mod <- outDf$feature_id
-            outDf$feature_id_mod <- gsub("SINGLE", "LCR", outDf$feature_id_mod)
-            outDf$feature_id_mod[outDf$feature_type == "coils"] <- "Coils"
-            outDf$feature_id_mod[outDf$feature_type == "seg"] <- "LCR"
-            outDf$feature_id_mod[outDf$feature_type == "tmhmm"] <- "TM"
-            # exclude features IDs
-            if (!is.null(input$excludeNames)) {
-                outDf$feature_id_mod[outDf$feature_type %in% input$excludeNames] <- NA
-            }
-            
-            # enable/disable option for showing evalue/bitscore
-            if ("evalue" %in% colnames(outDf)) {
-                shinyjs::enable("showScore")
-            } else {
-                shinyjs::disable("showScore")
             }
             return(outDf)
         # })
@@ -336,6 +343,37 @@ shinyServer(function(input, output, session) {
         req(getDomainInformation())
         outDf <- getDomainInformation()
         
+        # filter domain df by features
+        if (is.null(outDf)) return(NULL)
+        if (nrow(outDf) == 0) return(NULL)
+        outDf[c("feature_type","feature_id")] <- str_split_fixed(outDf$feature, '_', 2)
+        outDf <- outDf[!(outDf$feature_type %in% input$feature),]
+        # filter filters without e-value and/or bitscore
+        if ("evalue" %in% colnames(outDf)) {
+            if ("noEvalue" %in% input$feature)
+                outDf <- outDf[!is.na(outDf$evalue),]
+            if ("noBitscore" %in% input$feature)
+                outDf <- outDf[!is.na(outDf$bitscore),]
+        }
+        # modify feature IDs
+        outDf$feature_id_mod <- outDf$feature_id
+        outDf$feature_id_mod <- gsub("SINGLE", "LCR", outDf$feature_id_mod)
+        outDf$feature_id_mod[outDf$feature_type == "coils"] <- "Coils"
+        outDf$feature_id_mod[outDf$feature_type == "seg"] <- "LCR"
+        outDf$feature_id_mod[outDf$feature_type == "tmhmm"] <- "TM"
+        # exclude features IDs
+        if (!is.null(input$excludeNames)) {
+            outDf$feature_id_mod[outDf$feature_type %in% input$excludeNames] <- NA
+        }
+        
+        # enable/disable option for showing evalue/bitscore
+        if ("evalue" %in% colnames(outDf)) {
+            shinyjs::enable("showScore")
+        } else {
+            shinyjs::disable("showScore")
+        }
+        
+        # filter data by e-value, bit-score and feature path
         if ("evalue" %in% colnames(outDf)) {
             # filter by e-value and/or bit-score
             if ("E-value" %in% input$showScore) {
@@ -375,9 +413,7 @@ shinyServer(function(input, output, session) {
     
     # * create domain plot =====================================================
     output$domainPlot <- renderPlot({
-        req(getDomainInformation())
-        filterDomainData()
-
+        req(filterDomainData())
         if (input$doPlot > 0) {
             if (is.null(filterDomainData())) {
                 msgPlot()
@@ -390,7 +426,7 @@ shinyServer(function(input, output, session) {
                     input$showName, input$firstDist, input$nameType, 
                     input$nameSize, input$segmentSize, input$nameColor, input$labelPos, input$colorType,
                     input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
-                    input$featureTypeOrder, input$colorPallete, input$resolveOverlap
+                    input$featureTypeOrder, input$colorPallete, input$resolveOverlap, input$font
                 )
                 if (any(g == "No domain info available!")) {
                     msgPlot()
@@ -402,8 +438,8 @@ shinyServer(function(input, output, session) {
     })
     
     output$domainPlot.ui <- renderUI({
-        req(getDomainInformation())
-        if (is.null(getDomainInformation())) {
+        req(filterDomainData())
+        if (is.null(filterDomainData())) {
             msg <- paste0(
                 "<p><em>No domain found for this protein.</em></p>"
             )
@@ -424,7 +460,7 @@ shinyServer(function(input, output, session) {
     # })
     
     output$linkTable <- renderTable({
-        req(getDomainInformation())
+        req(filterDomainData())
         req(input$seq1)
         req(input$seq2)
         seq2 <- input$seq2
@@ -440,7 +476,7 @@ shinyServer(function(input, output, session) {
     }, sanitize.text.function = function(x) x)
     
     output$domainTable <- DT::renderDataTable({
-        req(getDomainInformation())
+        req(filterDomainData())
         req(input$seq1)
         req(input$seq2)
         outDf <- getDomainInformation()
@@ -456,12 +492,11 @@ shinyServer(function(input, output, session) {
             "Bit-score", "pHMM start", "pHMM end", "pHMM length"
         )
         outDf
-        # print(head(getDomainInformation()))
     })
     
     output$archiDownload <- downloadHandler(
         filename = function() {
-            c("domains.pdf")
+            c("domains.svg")
         },
         content = function(file) {
             seq2 <- input$seq2
@@ -472,15 +507,14 @@ shinyServer(function(input, output, session) {
                 input$showName, input$firstDist, input$nameType, 
                 input$nameSize, input$segmentSize, input$nameColor, input$labelPos, input$colorType,
                 input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
-                input$featureTypeOrder, input$colorPallete, input$resolveOverlap
+                input$featureTypeOrder, input$colorPallete, input$resolveOverlap, input$font
             )
-            grid.draw(g)
-            ggsave(
+            suppressWarnings(ggsave(
                 file, plot = g,
                 width = input$archiWidth * 0.056458333,
                 height = input$archiHeight * 0.056458333,
-                units = "cm", dpi = 300, device = "pdf", limitsize = FALSE
-            )
+                units = "cm", dpi = 300, device = "svg", limitsize = FALSE
+            ))
         }
     )
     

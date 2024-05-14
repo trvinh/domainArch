@@ -11,6 +11,7 @@
 #' @import ggplot2
 #' @import grid
 #' @importFrom gridExtra arrangeGrob
+#' @importFrom extrafont fonts font_import
 #' @import jsonlite
 #' @import pbapply
 #' @import shinyFiles

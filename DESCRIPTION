@@ -1,6 +1,6 @@
 Package: domainArch
-Version: 0.0.4
-Date: 2024-05-07
+Version: 0.0.7
+Date: 2024-05-15
 Title: domainArch
 Authors@R: c(
     person("Vinh", "Tran", role = c("aut", "cre"), email = "tran@bio.uni-frankfurt.de"))

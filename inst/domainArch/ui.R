@@ -7,7 +7,7 @@ shinyUI(
         # Application title
         titlePanel("", windowTitle = "domainArch"),
         navbarPage(
-            em(strong("domainArch v0.0.6")),
+            em(strong("domainArch v0.0.7")),
             id = "tabs",
             collapsible = TRUE,
             inverse = TRUE,
@@ -63,6 +63,7 @@ shinyUI(
                         "Protein 1",
                         choices = NULL
                     ),
+                    uiOutput("seedProtID.ui"),
                     selectizeInput(
                         "seq2",
                         "Protein 2",

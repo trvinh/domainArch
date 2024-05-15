@@ -192,7 +192,28 @@ shinyServer(function(input, output, session) {
         }
     })
     
-    # remove option to show best path if no seed protein =====================
+    # render seed ID ===========================================================
+    output$seedProtID.ui <- renderUI({
+        req(getDomainInformation())
+        if (input$seq1 == "seed") {
+            df <- getDomainInformation()
+            if (nrow(df) > 0) {
+                tmp <- unlist(lapply(
+                    df$orthoID, function(x) ifelse(grepl(x, df$seedID) == FALSE, x, NA)
+                ))
+                seed <- unique(tmp[!is.na(tmp)])
+                seedId <- sapply(str_split(seed, "\\:"), "[", 3)
+                seedTaxId <- sapply(str_split(seed, "@"), "[", 2)
+                seedTaxName <- PhyloProfile::id2name(seedTaxId, currentNCBIinfo)
+                list(
+                    em(paste(seedTaxName$fullName, seedId, collapse = " - ")),
+                    br(), br()
+                )
+            }
+        }
+    })
+    
+    # remove option to show best path if no seed protein =======================
     observe({
         if (input$seq1 != "seed") {
             updateCheckboxGroupInput(

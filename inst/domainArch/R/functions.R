@@ -585,37 +585,6 @@ joinPlotMergeLegends <- function(
     return(combined)
 }
 
-grid_arrange_shared_legend <- function (
-    ..., ncol = length(list(...)), nrow = 1, position = c("bottom", "right")
-) {
-    plots <- list(...)
-    position <- match.arg(position)
-    g <- ggplotGrob(plots[[1]] + theme(legend.position = position))$grobs
-    legend <- g[[which(sapply(g, function(x) x$name) == "guide-box")]]
-    lheight <- sum(legend$height)
-    lwidth <- sum(legend$width)
-    gl <- lapply(plots, function(x) x + theme(legend.position = "none"))
-    gl <- c(gl, ncol = ncol, nrow = nrow)
-
-    combined <- switch(
-        position,
-        "bottom" = gridExtra::arrangeGrob(
-            do.call(arrangeGrob, gl),
-            legend,
-            ncol = 1,
-            heights = grid::unit.c(unit(1, "npc") - lheight, lheight)
-        ),
-        "right" = gridExtra::arrangeGrob(
-            do.call(arrangeGrob, gl),
-            legend,
-            ncol = 2,
-            widths = grid::unit.c(unit(1, "npc") - lwidth, lwidth)
-        )
-    )
-
-    return(combined)
-}
-
 #' get pfam and smart domain links
 #' @return dataframe with domain IDs and their database links
 #' @author Vinh Tran {tran@bio.uni-frankfurt.de}

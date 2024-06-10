@@ -69,20 +69,26 @@ shinyUI(
                         "Protein 2",
                         choices = NULL
                     ),
+                    br(),
+                    selectInput(
+                        "font","Font", choices = extrafont::fonts(),
+                        selected = "Arial"
+                    ),
                     bsButton("doPlot", "Plot", style = "info")
                 ),
                 mainPanel(
+                    # createArchitecturePlotUI("archiPlot")
                     fluidRow(
                         column(
                             3,
                             radioButtons(
                                 "resolveOverlap",
-                                "Merge non-overlapped features", 
-                                choices = c("Yes","No"), selected = "Yes", 
+                                "Merge non-overlapped features",
+                                choices = c("Yes","No"), selected = "Yes",
                                 inline = TRUE
                             ),
                             checkboxGroupInput(
-                                "showName",
+                                "namePosition",
                                 "Display feature names",
                                 choices = c(
                                     "On the plot" = "plot",
@@ -105,14 +111,22 @@ shinyUI(
                                 ),
                                 multiple = TRUE
                             ),
-                            bsButton("featureOpt", "Other feature options"),
+                            checkboxInput(
+                                "featureOpt", "Other feature options", value = FALSE
+                            ),
                             checkboxInput("plotConfig", "Plot configuration", value = FALSE)
                         ),
                         column(
                            3,
+                           strong("Show information"),
+                           checkboxGroupInput(
+                               "showWeight",
+                               "",
+                               choices = "Weight"
+                           ),
                            checkboxGroupInput(
                                "showScore",
-                               "Show information",
+                               "",
                                choices = c(
                                    "E-value", "Bit-score"
                                )
@@ -126,9 +140,83 @@ shinyUI(
                                 "showInstance",
                                 "Show only instances with",
                                 choices = c(
-                                    "Best E-value" = "evalue", 
+                                    "Best E-value" = "evalue",
                                     "Best Bit-score" = "bitscore",
                                     "Paths" = "path"
+                                )
+                            )
+                        )
+                    ),
+                    br(),
+                    fluidRow(
+                        conditionalPanel(
+                            condition = "input.featureOpt == 1",
+                            column(
+                                3,
+                                radioButtons(
+                                    "nameType","Type of feature names", inline = TRUE,
+                                    choices = c("Labels","Texts"), selected = "Labels"
+                                )
+                                
+                            ),
+                            column(
+                                4,
+                                conditionalPanel(
+                                    condition = "input.nameType == 'Labels'",
+                                    radioButtons(
+                                        "labelPos","Label position", inline = TRUE,
+                                        choices = c("Above","Inside","Below"),
+                                        selected = "Above"
+                                    )
+                                ),
+                                conditionalPanel(
+                                    condition = "input.nameType == 'Texts'",
+                                    colourpicker::colourInput(
+                                        "nameColor",
+                                        "Feature name color",
+                                        value = "#000000"
+                                    )
+                                )
+                            ),
+                            column(
+                                5,
+                                selectInput(
+                                    "excludeNames",
+                                    "Exclude feature names of",
+                                    choices = c(
+                                        "flps","seg","coils","signalp","tmhmm",
+                                        "smart","pfam"
+                                    ),
+                                    selected = c("tmhmm","signalp","seg","coils"),
+                                    multiple = TRUE
+                                )
+                            ),
+                            column(
+                                3,
+                                radioButtons(
+                                    "featureClassSort",
+                                    "Sort feature classes by shared features",
+                                    choices = c("Yes","No"), selected = "Yes",
+                                    inline = TRUE
+                                )
+                            ),
+                            column(
+                                5,
+                                conditionalPanel(
+                                    condition = "input.featureClassSort == 'No'",
+                                    selectInput(
+                                        "featureClassOrder",
+                                        "Feature class order",
+                                        choices = c(
+                                            "pfam", "smart", "tmhmm", "coils", "signalp",
+                                            "seg", "flps"
+                                        ),
+                                        selected = c(
+                                            "pfam", "smart", "tmhmm", "coils", "signalp",
+                                            "seg", "flps"
+                                        ),
+                                        multiple = TRUE
+                                    )
                                 )
                             )
                         )
@@ -168,7 +256,7 @@ shinyUI(
                                 column(
                                     12,
                                     sliderInput(
-                                        "firstDist", "Distance between plot title and the 1st feature", 
+                                        "firstDist", "Distance between plot title and the 1st feature",
                                         min = 0, max = 5, value = 0.5, step = 0.1, width = 400
                                     )
                                 )
@@ -229,7 +317,7 @@ shinyUI(
                     uiOutput("domainFileIn.ui"),
                     br(),
                     shinyDirButton(
-                        "domainDirOut", 
+                        "domainDirOut",
                         "Select output directory" ,
                         title = paste(
                             "Please select output directory"
@@ -247,60 +335,6 @@ shinyUI(
                     ),
                     hr(),
                     verbatimTextOutput("splitDomainFileStatus")
-                )
-            )
-        ),
-        bsModal(
-            "featureConfigBs",
-            "Feature name configuration",
-            "featureOpt",
-            size = "small",
-            br(),
-            radioButtons(
-                "nameType","Type of feature IDs", inline = TRUE,
-                choices = c("Labels","Texts"), selected = "Labels"
-            ),
-            conditionalPanel(
-                condition = "input.nameType == 'Labels'",
-                radioButtons(
-                    "labelPos","Label position", inline = TRUE,
-                    choices = c("Above","Inside","Below"), selected = "Above"
-                )
-            ),
-            conditionalPanel(
-                condition = "input.nameType == 'Texts'",
-                colourpicker::colourInput(
-                    "nameColor",
-                    "Feature name color",
-                    value = "#000000"
-                )
-            ),
-            selectInput(
-                "excludeNames",
-                "Exclude feature names of",
-                choices = c(
-                    "flps","seg","coils","signalp","tmhmm",
-                    "smart","pfam"
-                ),
-                selected = c("tmhmm","signalp","seg","flps","coils"),
-                multiple = TRUE
-            ),
-            radioButtons(
-                "featureTypeSort","Sort feature classes by shared features", inline = TRUE,
-                choices = c("Yes","No"), selected = "Yes"
-            ),
-            conditionalPanel(
-                condition = "input.featureTypeSort == 'No'",
-                selectInput(
-                    "featureTypeOrder",
-                    "Feature type order",
-                    choices = c(
-                        "pfam", "smart", "tmhmm", "coils", "signalp", "seg", "flps"
-                    ),
-                    selected = c(
-                        "pfam", "smart", "tmhmm", "coils", "signalp", "seg", "flps"
-                    ),
-                    multiple = TRUE
                 )
             )
         )

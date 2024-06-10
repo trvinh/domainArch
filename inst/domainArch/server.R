@@ -433,6 +433,19 @@ shinyServer(function(input, output, session) {
     })
     
     # * create domain plot =====================================================
+    # observeEvent(input$doPlot, {
+    #     seq2 <- input$seq2
+    #     if (input$seq2 == "none") seq2 <- input$seq1
+    #     print(c(input$seed1, seq2))
+    #     callModule(
+    #         createArchitecturePlot, "archiPlot",
+    #         pointInfo = reactive(c(input$seed1, seq2)),
+    #         domainInfo = filterDomainData,
+    #         currentNCBIinfo = reactive(currentNCBIinfo),
+    #         font = reactive(input$font)
+    #     )
+    # })
+    
     output$domainPlot <- renderPlot({
         req(filterDomainData())
         if (input$doPlot > 0) {
@@ -441,13 +454,14 @@ shinyServer(function(input, output, session) {
             } else {
                 seq2 <- input$seq2
                 if (input$seq2 == "none") seq2 <- input$seq1
-                g <- createArchiPlot2(
-                    c(input$seed1, seq2), filterDomainData(), 
-                    input$labelArchiSize, input$titleArchiSize, input$showScore, 
-                    input$showName, input$firstDist, input$nameType, 
-                    input$nameSize, input$segmentSize, input$nameColor, input$labelPos, input$colorType,
-                    input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
-                    input$featureTypeOrder, input$colorPallete, input$resolveOverlap, input$font
+                g <- PhyloProfile::createArchiPlot(
+                    c(input$seed1, seq2), filterDomainData(),
+                    input$labelArchiSize, input$titleArchiSize, input$showScore,
+                    input$showWeight, input$namePosition, input$firstDist,input$nameType,
+                    input$nameSize, input$segmentSize, input$nameColor, input$labelPos,
+                    input$colorType, input$ignoreInstanceNo, currentNCBIinfo,
+                    input$featureClassSort, input$featureClassOrder, input$colorPallete,
+                    input$resolveOverlap, input$font
                 )
                 if (any(g == "No domain info available!")) {
                     msgPlot()
@@ -457,7 +471,7 @@ shinyServer(function(input, output, session) {
             }
         }
     })
-    
+
     output$domainPlot.ui <- renderUI({
         req(filterDomainData())
         if (is.null(filterDomainData())) {
@@ -495,7 +509,7 @@ shinyServer(function(input, output, session) {
         }
         features <- features[!duplicated(features),]
     }, sanitize.text.function = function(x) x)
-    
+
     output$domainTable <- DT::renderDataTable({
         req(filterDomainData())
         req(input$seq1)
@@ -503,18 +517,18 @@ shinyServer(function(input, output, session) {
         outDf <- getDomainInformation()
         outDf <- outDf[
             ,c(
-                "orthoID", "length", "feature_id", "feature_type", "start", "end", "evalue", 
+                "orthoID", "length", "feature_id", "feature_type", "start", "end", "evalue",
                 "bitscore", "pStart", "pEnd", "pLen"
             )
         ]
         outDf$orthoID <- gsub(":", "\\|", outDf$orthoID)
         colnames(outDf) <- c(
-            "Sequence ID", "Length", "Feature", "Type", "Start", "End", "E-value", 
+            "Sequence ID", "Length", "Feature", "Type", "Start", "End", "E-value",
             "Bit-score", "pHMM start", "pHMM end", "pHMM length"
         )
         outDf
     })
-    
+
     output$archiDownload <- downloadHandler(
         filename = function() {
             c("domains.svg")
@@ -522,13 +536,14 @@ shinyServer(function(input, output, session) {
         content = function(file) {
             seq2 <- input$seq2
             if (input$seq2 == "none") seq2 <- input$seq1
-            g <- createArchiPlot2(
-                c(input$seed1, seq2), filterDomainData(), 
-                input$labelArchiSize, input$titleArchiSize, input$showScore, 
-                input$showName, input$firstDist, input$nameType, 
-                input$nameSize, input$segmentSize, input$nameColor, input$labelPos, input$colorType,
-                input$ignoreInstanceNo, currentNCBIinfo, input$featureTypeSort,
-                input$featureTypeOrder, input$colorPallete, input$resolveOverlap, input$font
+            g <- PhyloProfile::createArchiPlot(
+                c(input$seed1, seq2), filterDomainData(),
+                input$labelArchiSize, input$titleArchiSize, input$showScore,
+                input$showWeight, input$namePosition, input$firstDist,input$nameType,
+                input$nameSize, input$segmentSize, input$nameColor, input$labelPos,
+                input$colorType, input$ignoreInstanceNo, currentNCBIinfo,
+                input$featureClassSort, input$featureClassOrder, input$colorPallete,
+                input$resolveOverlap, input$font
             )
             suppressWarnings(ggsave(
                 file, plot = g,

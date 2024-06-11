@@ -153,7 +153,6 @@ shinyServer(function(input, output, session) {
             if (input$seed2 != "none")
                 domainFile2 <- paste0(getAnnoDir(),"/",input$seed2,".json")
         }
-        
         if(!file.exists(domainFile)) stop(paste(domainFile, "not found!"))
         if (grepl(".domains", domainFile)) {
             updateSelectizeInput(
@@ -204,11 +203,18 @@ shinyServer(function(input, output, session) {
                 seed <- unique(tmp[!is.na(tmp)])
                 seedId <- sapply(str_split(seed, "\\:"), "[", 3)
                 seedTaxId <- sapply(str_split(seed, "@"), "[", 2)
-                seedTaxName <- PhyloProfile::id2name(seedTaxId, currentNCBIinfo)
-                list(
-                    em(paste(seedTaxName$fullName, seedId, collapse = " - ")),
-                    br(), br()
-                )
+                if (length(seedTaxId) > 0) {
+                    seedTaxName <- PhyloProfile::id2name(seedTaxId, currentNCBIinfo)
+                    list(
+                        em(paste(seedTaxName$fullName, seedId, collapse = " - ")),
+                        br(), br()
+                    )
+                } else {
+                    list(
+                        em("Identical with protein 2"),
+                        br(), br()
+                    )
+                }
             }
         }
     })
@@ -216,19 +222,21 @@ shinyServer(function(input, output, session) {
     # remove option to show best path if no seed protein =======================
     observe({
         if (input$seq1 != "seed") {
-            updateCheckboxGroupInput(
-                session, "showInstance",
-                "Show only instances with",
+            updateSelectInput(
+                session, "linearizationBy",
+                "Linearizing architecture using",
                 choices = c(
+                    "None" = "none",
                     "Best E-value" = "evalue", 
                     "Best Bit-score" = "bitscore"
                 )
             )
         } else {
-            updateCheckboxGroupInput(
-                session, "showInstance",
-                "Show only instances with",
+            updateSelectInput(
+                session, "linearizationBy",
+                "Linearizing architecture using",
                 choices = c(
+                    "None" = "none",
                     "Best E-value" = "evalue", 
                     "Best Bit-score" = "bitscore",
                     "Paths" = "path"
@@ -363,6 +371,7 @@ shinyServer(function(input, output, session) {
     filterDomainData <- reactive({
         req(getDomainInformation())
         outDf <- getDomainInformation()
+        outDf <- outDf[!duplicated(outDf), ]
         
         # filter domain df by features
         if (is.null(outDf)) return(NULL)
@@ -410,18 +419,33 @@ shinyServer(function(input, output, session) {
                 outDf <- outDf[!is.na(outDf$bitscore) & outDf$bitscore >= input$minBitscore,]
                 outDf <- rbind(outDf,naOutDf)
             }
-            # get only best instances
-            if ("evalue" %in% input$showInstance) {
-                naOutDf <- outDf[is.na(outDf$evalue),]
-                outDf <- outDf %>% group_by(feature, orthoID) %>% filter(evalue == min(evalue))
-                outDf <- rbind(outDf,naOutDf)
+            # linearizing architecture
+            if ("evalue" %in% input$linearizationBy) {
+                # naOutDf <- outDf[is.na(outDf$evalue),]
+                # outDf <- outDf %>% group_by(feature, orthoID) %>% filter(evalue == min(evalue))
+                # outDf <- rbind(outDf,naOutDf)
+                
+                linearizedDfs <- lapply(
+                    levels(as.factor(outDf$orthoID)),
+                    function(orthoID) {
+                        return(linearizeArchitecture(outDf, orthoID, "evalue"))
+                    }
+                )
+                outDf <- do.call(rbind, linearizedDfs)
             }
-            if ("bitscore" %in% input$showInstance) {
-                naOutDf <- outDf[is.na(outDf$bitscore),]
-                outDf <- outDf %>% group_by(feature, orthoID) %>% filter(bitscore == max(bitscore))
-                outDf <- rbind(outDf,naOutDf)
+            if ("bitscore" %in% input$linearizationBy) {
+                # naOutDf <- outDf[is.na(outDf$bitscore),]
+                # outDf <- outDf %>% group_by(feature, orthoID) %>% filter(bitscore == max(bitscore))
+                # outDf <- rbind(outDf,naOutDf)
+                linearizedDfs <- lapply(
+                    levels(as.factor(outDf$orthoID)),
+                    function(orthoID) {
+                        return(linearizeArchitecture(outDf, orthoID, "bitscore"))
+                    }
+                )
+                outDf <- do.call(rbind, linearizedDfs)
             }
-            if ("path" %in% input$showInstance) {
+            if ("path" %in% input$linearizationBy) {
                 outDf <- outDf %>% group_by(feature) %>% filter(path == "Y")
             }
             # Format e-values
@@ -433,19 +457,6 @@ shinyServer(function(input, output, session) {
     })
     
     # * create domain plot =====================================================
-    # observeEvent(input$doPlot, {
-    #     seq2 <- input$seq2
-    #     if (input$seq2 == "none") seq2 <- input$seq1
-    #     print(c(input$seed1, seq2))
-    #     callModule(
-    #         createArchitecturePlot, "archiPlot",
-    #         pointInfo = reactive(c(input$seed1, seq2)),
-    #         domainInfo = filterDomainData,
-    #         currentNCBIinfo = reactive(currentNCBIinfo),
-    #         font = reactive(input$font)
-    #     )
-    # })
-    
     output$domainPlot <- renderPlot({
         req(filterDomainData())
         if (input$doPlot > 0) {

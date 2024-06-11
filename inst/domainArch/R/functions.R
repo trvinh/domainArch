@@ -275,3 +275,48 @@ splitDomainFile <- function(domainFile = NULL, outPath = NULL) {
         message("Please check the R terminal and the output folder!")
     }
 }
+
+# 
+linearizeArchitecture <- function(df = NULL, orthoID = NULL, value = "evalue") {
+    if (is.null(df) | is.null(orthoID)) stop("Input data is NULL!")
+    
+    # Sort the dataframe by start position and then by evalue or bitscore
+    if (value == "evalue") {
+        df <- df %>% arrange(start, evalue)
+    } else if (value == "bitscore") {
+        df <- df %>% arrange(start, bitscore)
+    } else stop("Incorrect value specified! Either 'evalue' or 'bitscore'")
+        
+    # Get lines that need to be excluded
+    pfamRows <- rownames(df[df$orthoID == orthoID & df$feature_type %in% c("pfam","smart"),])
+    exclude_lines <- vapply(
+        1:(length(pfamRows)-1),
+        function(i) {
+            if (df[pfamRows[i],]$end >= df[pfamRows[i+1],]$start) {
+                # Exclude the row with the higher evalue / lower bitscore
+                if (value == "evalue") {
+                    if (df[pfamRows[i],]$evalue > df[pfamRows[i+1],]$evalue) {
+                        return((pfamRows[i]))
+                    } else {
+                        return((pfamRows[i+1]))
+                    }
+                } else {
+                    if (df[pfamRows[i],]$bitscore < df[pfamRows[i+1],]$bitscore) {
+                        return((pfamRows[i]))
+                    } else {
+                        return((pfamRows[i+1]))
+                    }
+                }
+                
+            } else {
+                return("0")
+            }
+        },
+        character(1)
+    )
+    # return df after removing overlapped features with higher e-values
+    # exclude_lines <- as.integer(exclude_lines)
+    outDf <- df[!(row.names(df) %in% exclude_lines), ]
+    return(outDf[outDf$orthoID == orthoID,])
+}
+

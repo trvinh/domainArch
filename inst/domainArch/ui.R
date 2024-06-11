@@ -136,10 +136,11 @@ shinyUI(
                         ),
                         column(
                             3,
-                            checkboxGroupInput(
-                                "showInstance",
-                                "Show only instances with",
+                            selectInput(
+                                "linearizationBy",
+                                "Linearizing architecture using",
                                 choices = c(
+                                    "None" = "none",
                                     "Best E-value" = "evalue",
                                     "Best Bit-score" = "bitscore",
                                     "Paths" = "path"
@@ -269,7 +270,7 @@ shinyUI(
                                 ),
                                 checkboxInput(
                                     "ignoreInstanceNo", "Ignore number of instances", value = FALSE
-                                ),
+                                )
                             ),
                             column(
                                 6,

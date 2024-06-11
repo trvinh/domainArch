@@ -1,6 +1,6 @@
 Package: domainArch
-Version: 0.0.7
-Date: 2024-05-15
+Version: 0.0.8
+Date: 2024-06-11
 Title: domainArch
 Authors@R: c(
     person("Vinh", "Tran", role = c("aut", "cre"), email = "tran@bio.uni-frankfurt.de"))
@@ -8,7 +8,7 @@ Description: Tool for protein domain architectures visualisation and comparison.
 URL: https://github.com/trvinh/domainArch/
 BugReports: https://github.com/trvinh/domainArch/issues
 License: MIT + file LICENSE
-Depends: R (>= 4.2.0)
+Depends: R (>= 4.3.0)
 Encoding: UTF-8
 biocViews: Software, Visualization, DataRepresentation, MultipleComparison, FunctionalPrediction
 Imports:

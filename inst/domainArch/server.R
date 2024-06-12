@@ -428,7 +428,7 @@ shinyServer(function(input, output, session) {
                 linearizedDfs <- lapply(
                     levels(as.factor(outDf$orthoID)),
                     function(orthoID) {
-                        return(linearizeArchitecture(outDf, orthoID, "evalue"))
+                        return(PhyloProfile::linearizeArchitecture(outDf, orthoID, "evalue"))
                     }
                 )
                 outDf <- do.call(rbind, linearizedDfs)
@@ -440,7 +440,7 @@ shinyServer(function(input, output, session) {
                 linearizedDfs <- lapply(
                     levels(as.factor(outDf$orthoID)),
                     function(orthoID) {
-                        return(linearizeArchitecture(outDf, orthoID, "bitscore"))
+                        return(PhyloProfile::linearizeArchitecture(outDf, orthoID, "bitscore"))
                     }
                 )
                 outDf <- do.call(rbind, linearizedDfs)
